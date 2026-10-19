@@ -1,0 +1,43 @@
+{
+  "title": "Cloudflare WARP",
+  "settings": {
+    "poll_interval": {
+      "label": "Poll interval",
+      "description": "How often to query warp-cli for status, in milliseconds."
+    },
+    "notify_on_change": {
+      "label": "Notify when the connection changes"
+    },
+    "notify_on_error": {
+      "label": "Notify on errors"
+    },
+    "auto_trace": {
+      "label": "Track network identity",
+      "description": "Periodically fetch the egress IP, location and Cloudflare edge from cdn-cgi/trace."
+    },
+    "trace_interval": {
+      "label": "Trace interval (seconds)",
+      "description": "How often to refresh network identity while tracking is enabled."
+    },
+    "show_text_in_bar": {
+      "label": "Show text in the bar"
+    },
+    "compact_mode": {
+      "label": "Compact mode (icon only)"
+    }
+  },
+  "widget": {
+    "text": {
+      "brand": "WARP",
+      "unknown": "WARP status unknown"
+    }
+  },
+  "shortcut": {
+    "off": "WARP Off"
+  },
+  "panel": {
+    "title": "Cloudflare WARP",
+    "placeholder": "WARP controls will appear here in a later update.",
+    "version": "Version {version}"
+  }
+}

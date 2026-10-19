@@ -301,6 +301,19 @@ noctalia msg plugins source remove warpdev
 Горячая перезагрузка: правки `.luau` подхватываются file-watcher’ом; изменения
 `plugin.toml` — только через `noctalia msg config-reload`.
 
+### Эмпирика `onExit` на сборке `5.3.0-1-dirty` (важно для acceptance)
+
+При `noctalia msg plugins disable` хост пишет в лог
+`[plugin-service] stopping service 'code-warlord/cloudflare-warp:service' (no longer active)`,
+но Luau-хук `onExit(signal, reason)` **не вызывается** — строки `exit reason=disable` в логе нет.
+`onEnable()` при этом вызывается корректно (`cloudflare-warp: enabled`).
+
+Следствие для спек/QA: наблюдаемый контракт disable на этой сборке — строка
+`stopping service … (no longer active)` и отсутствие дальнейшей активности плагина,
+а не вызов `onExit`. Сам хук `onExit` в коде оставляем: он задокументирован и
+может срабатывать на `shutdown`/`reload`/других сборках. Acceptance, требующий
+`exit reason=disable`, должен быть переписан под реальное поведение.
+
 ---
 
 ## 9. Асинхронный API: проверенные сигнатуры

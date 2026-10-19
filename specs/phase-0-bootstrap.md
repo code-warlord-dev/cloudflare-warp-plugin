@@ -229,7 +229,9 @@ Cloudflare от имени пользователя), установка чер�
 **D. Выключение и чистота**
 
 - [ ] `noctalia msg plugins disable code-warlord/cloudflare-warp` → `ok`, в логе
-      `onExit` reason `disable` (строка `cloudflare-warp: exit reason=disable`).
+      `[plugin-service] stopping service 'code-warlord/cloudflare-warp:service' (no longer active)`.
+      На сборке `5.3.0-1-dirty` хост **не** вызывает Luau-хук `onExit` при disable
+      (см. `docs/API-NOTES.md` §8); строка `exit reason=disable` здесь не ожидается.
 - [ ] После disable в логе нет новых строк нашего плагина (никаких «фоновых» процессов).
 - [ ] `noctalia msg plugins source remove warpdev` → `ok`; `plugins list` больше не
       содержит `cloudflare-warp`.
