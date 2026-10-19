@@ -1,0 +1,43 @@
+{
+  "title": "Cloudflare WARP",
+  "settings": {
+    "poll_interval": {
+      "label": "Интервал опроса",
+      "description": "Как часто запрашивать статус у warp-cli, в миллисекундах."
+    },
+    "notify_on_change": {
+      "label": "Уведомлять об изменении подключения"
+    },
+    "notify_on_error": {
+      "label": "Уведомлять об ошибках"
+    },
+    "auto_trace": {
+      "label": "Определять сетевую идентичность",
+      "description": "Периодически получать внешний IP, страну и edge Cloudflare из cdn-cgi/trace."
+    },
+    "trace_interval": {
+      "label": "Интервал трассировки (секунды)",
+      "description": "Как часто обновлять сетевую идентичность, пока отслеживание включено."
+    },
+    "show_text_in_bar": {
+      "label": "Показывать текст в баре"
+    },
+    "compact_mode": {
+      "label": "Компактный режим (только иконка)"
+    }
+  },
+  "widget": {
+    "text": {
+      "brand": "WARP",
+      "unknown": "Статус WARP неизвестен"
+    }
+  },
+  "shortcut": {
+    "off": "WARP выключен"
+  },
+  "panel": {
+    "title": "Cloudflare WARP",
+    "placeholder": "Элементы управления WARP появятся здесь в следующем обновлении.",
+    "version": "Версия {version}"
+  }
+}
