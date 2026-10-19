@@ -300,7 +300,8 @@ warp-cli --accept-tos --json --no-paginate --no-ansi status
       не выполняется — отметить как not-run.)
 - [ ] `onConfigChanged`: изменить `poll_interval_ms` на 5000 → лог
       `cloudflare-warp: config changed poll=5000`, heartbeat реже, shell не перезапускается.
-- [ ] `onExit`: disable → `cloudflare-warp: exit reason=disable`, процессов
+- [ ] `onExit`: disable → в логе `stopping service … (no longer active)`; на этой сборке
+      Luau-хук `onExit` не вызывается (см. `docs/API-NOTES.md` §8). Процессов
       `warp-cli` не остаётся (`pgrep -af warp-cli` пусто).
 
 **E. Уведомления**
