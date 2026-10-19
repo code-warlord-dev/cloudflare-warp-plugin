@@ -11,11 +11,12 @@
 | Поле | Значение |
 |------|----------|
 | **Plugin version** | `0.0.0` |
-| **Roadmap phase** | Phase 0 — Bootstrap (не начата) |
+| **Roadmap phase** | Phase 0 — Bootstrap (в работе) |
 | **Branch** | `main` |
-| **Last merge** | — |
+| **Remote** | https://github.com/code-warlord-dev/cloudflare-warp-plugin |
+| **Last merge** | `a067b73` chore(meta): bootstrap repo + skills → `.agents/skills/` |
 | **Blockers** | нет |
-| **Next action** | Phase 0: создать `cloudflare-warp/plugin.toml` + empty entries |
+| **Next action** | Phase 0: API reconciliation (architect) → scaffold `cloudflare-warp/` |
 
 ---
 
@@ -23,7 +24,8 @@
 
 | Agent | Task | Status | Branch / notes |
 |-------|------|--------|----------------|
-| — | — | idle | — |
+| orchestrator | Repo bootstrap + skills discovery | done | `main` @ a067b73 |
+| architect | API reconciliation (Noctalia 5.3.0) + Phase 0 spec | in progress | `main` |
 
 ---
 
