@@ -1,0 +1,18 @@
+# OS / editor
+.DS_Store
+*.swp
+*.swo
+*~
+
+# Logs & local state
+*.log
+.env
+.env.*
+
+# Build / cache
+/tmp/
+.cache/
+__pycache__/
+
+# Noctalia runtime materialization (never commit)
+/cloudflare-warp/.noctalia/
