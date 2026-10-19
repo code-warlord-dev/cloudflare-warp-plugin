@@ -4,12 +4,13 @@
 
 | Поле | Значение |
 |------|----------|
-| Версия документа | 1.0.0 |
-| Целевая платформа | Noctalia ≥ 5.0 (plugin_api = 17+) |
+| Версия документа | 2.0.0 (сверено с Noctalia 5.3.0) |
+| Целевая платформа | Noctalia 5.x; проверено на `v5.3.0` (`plugin_api = 24`) |
 | Язык | Luau |
 | Внешняя зависимость | пакет `cloudflare-warp` (`warp-cli`, `warp-svc`) |
-| Plugin ID | `community/cloudflare-warp` |
+| Plugin ID | `code-warlord/cloudflare-warp` |
 | Каталог | `cloudflare-warp/` |
+| Аудит API | [API-NOTES.md](./API-NOTES.md) — обязателен к прочтению |
 
 ---
 
@@ -17,12 +18,19 @@
 
 Плагин даёт пользователю полный контроль над Cloudflare WARP прямо из оболочки Noctalia:
 
-- статус в баре (иконка + цвет + tooltip);
-- быстрый toggle из Control Center;
-- полноценная панель с режимами, Families, протоколом и диагностикой;
-- фоновый сервис, который держит актуальное состояние и рассылает его всем entry.
+- статус в баре (SVG-иконка + текст + tooltip);
+- быстрый toggle из бара и Control Center;
+- панель с режимами, Families, протоколом, регистрацией и сетевой идентичностью;
+- фоновый сервис — единственный источник правды о состоянии WARP.
 
-Плагин **не** заменяет официальный `warp-taskbar`. Он работает поверх CLI (`warp-cli`) и рассчитан на пользователей, у которых уже установлен `cloudflare-warp`.
+Плагин **не** заменяет официальный `warp-taskbar` и работает поверх CLI (`warp-cli`) у
+пользователей, у которых уже установлен `cloudflare-warp`.
+
+**Позиционирование против `levi/warp`** (единственный конкурирующий плагин, v1.2.0):
+Families, tunnel protocol setter, состояние регистрации, egress-идентичность
+(`ip` / `loc` / `colo` / `warp=on|plus`), полная локализация en+ru, SVG-иконки состояния,
+argv-форма `runAsync` (без shell). Телеметрия туннеля (latency, loss, TLS, bytes) в scope
+не входит — это сильная сторона `levi/warp`. Подробное сравнение: API-NOTES §13.
 
 ---
 
@@ -30,160 +38,337 @@
 
 | Entry ID | Тип | Файл | Назначение |
 |----------|-----|------|------------|
-| `service` | `[[service]]` | `service.luau` | Единственный источник правды. Поллит `warp-cli`, публикует state, выполняет connect/disconnect/mode. |
-| `widget` | `[[widget]]` | `widget.luau` | Bar-виджет. Читает state, рисует SVG-иконку + text, обрабатывает клики. |
-| `shortcut` | `[[shortcut]]` | `shortcut.luau` | Плитка в Control Center (toggle). |
-| `panel` | `[[panel]]` | `panel.luau` | Детальная панель (режим, Families, протокол, статус, кнопки). |
+| `service` | `[[service]]` | `service.luau` | Единственный источник правды: поллит `warp-cli`, публикует `warp.status`, потребляет `warp.command`. |
+| `widget` | `[[widget]]` | `widget.luau` | Bar-виджет: SVG + текст + tooltip, ЛК toggle, ПК панель. |
+| `shortcut` | `[[shortcut]]` | `shortcut.luau` | Плитка Control Center: glyph-пара, checked = connected. |
+| `panel` | `[[panel]]` | `panel.luau` | Детальная панель управления. |
 
-Рекомендуемый `plugin_api = 17` (нужен `onEnable` / `onExit` / `onConfigChanged` у service).  
-При необходимости tooltip на контейнерах — поднять до 32.
+Полный id entry: `code-warlord/cloudflare-warp:<entry>`.
 
-Общий state-канал: `noctalia.state` (ключи с префиксом `warp.`).
-
----
-
-## 3. Внешняя зависимость и команды
-
-### 3.1. Обязательные команды `warp-cli`
-
-| Действие | Команда | Ожидаемый вывод / поведение |
-|----------|---------|-----------------------------|
-| Статус | `warp-cli status` | `Status update: Connected` / `Disconnected` / `Connecting` / `Unable to connect` |
-| Подключить | `warp-cli connect` | |
-| Отключить | `warp-cli disconnect` | |
-| Режим | `warp-cli mode <mode>` | `warp`, `doh`, `warp+doh`, `proxy`, `tunnel_only` |
-| Families | `warp-cli dns families <off\|malware\|full>` | |
-| Протокол | `warp-cli tunnel protocol set <WireGuard\|MASQUE>` | |
-| Настройки | `warp-cli settings` | Полный dump |
-| Регистрация | `warp-cli registration new` / `show` | |
-| Trace | `curl -s https://www.cloudflare.com/cdn-cgi/trace` | `warp=on` / `warp=plus` |
-
-Плагин **никогда** не вызывает `sudo`. Если демон не запущен — показывает ошибку.
-
-### 3.2. Парсинг статуса
-
-Сервис запускает `warp-cli status 2>&1` и парсит:
-
-- `Connected` → `connected`
-- `Disconnected` → `disconnected`
-- `Connecting` / `Reconnecting` → `connecting`
-- `Registration missing` / `Not registered` → `unregistered`
-- ошибки → `error` + текст
-
-Дополнительно (раз в 30–60 с или по запросу):
-
-```bash
-curl -s https://www.cloudflare.com/cdn-cgi/trace | grep -E '^(warp|ip|loc)='
-```
+**`plugin_api = 24`** — минимум для относительных модулей (22) и argv-формы `runAsync` (24).
+Обоснование по уровням: [API-NOTES.md §1](./API-NOTES.md#1-plugin_api--24--почему-именно-24).
 
 ---
 
-## 4. State-модель (`noctalia.state`)
+## 3. Модель состояния
+
+Один ключ — одна таблица. UI-entry только читают `warp.status`; сервис только пишет его.
+`warp.command` — наоборот (см. §4).
+
+### 3.1. `warp.status` (writer: service)
 
 ```luau
-noctalia.state.set("warp.status", "connected")       -- connected | disconnected | connecting | unregistered | error | unknown
-noctalia.state.set("warp.mode", "warp")
-noctalia.state.set("warp.families", "off")           -- off | malware | full
-noctalia.state.set("warp.protocol", "MASQUE")        -- WireGuard | MASQUE
-noctalia.state.set("warp.error", "")
-noctalia.state.set("warp.last_update", noctalia.nowMs())
-noctalia.state.set("warp.trace.warp", "on")
-noctalia.state.set("warp.trace.ip", "...")
-noctalia.state.set("warp.trace.loc", "...")
-noctalia.state.set("warp.daemon_ok", true)
+{
+  schema = 1,
+  phase = "connected",
+  available = true,
+  daemonOk = true,
+  registered = true,
+  accountType = "free",
+  busy = false,
+  errorCode = "",
+  message = "",
+  mode = "warp",
+  families = "unknown",
+  protocol = "masque",
+  alwaysOn = true,
+  switchLocked = false,
+  splitTunnelMode = "exclude",
+  splitTunnelCount = 26,
+  trace = { warp = "on", ip = "104.28.244.142", loc = "UA", colo = "WAW", atMs = 1792437046000 },
+  cliVersion = "2026.8.2110.0",
+  updatedAtMs = 1792437046000,
+}
 ```
 
-Widget / shortcut / panel только **читают**.
+| Поле | Тип | Значения / правило |
+|------|-----|--------------------|
+| `schema` | number | `1`. Меняется только при ломающем изменении полей. |
+| `phase` | string | `unavailable` \| `unregistered` \| `disconnected` \| `connecting` \| `connected` \| `disconnecting` \| `error` \| `unknown` |
+| `available` | bool | `warp-cli` найден в `PATH` (`noctalia.commandExists`) |
+| `daemonOk` | bool | последний вызов CLI дошёл до демона |
+| `registered` | bool | `registration show` завершился с кодом 0 |
+| `accountType` | string | `free` \| `team` \| `unknown` (из `account.type`; **никогда** license/id) |
+| `busy` | bool | мутирующая команда в полёте |
+| `errorCode` | string | `""` \| `cli-missing` \| `daemon-down` \| `unregistered` \| `command-failed` \| `timeout` \| `decode-failed` |
+| `message` | string | сырой текст ошибки CLI (English), `""` если всё хорошо |
+| `mode` | string | `warp` \| `doh` \| `warp+doh` \| `dot` \| `warp+dot` \| `proxy` \| `tunnel_only` \| `""` |
+| `families` | string | `off` \| `malware` \| `full` \| `unknown` — знание только текущего runtime (§3.3) |
+| `protocol` | string | `wireguard` \| `masque` \| `unknown` |
+| `alwaysOn` | bool | `settings.always_on` из `warp-cli settings --json` (корневой объект `settings`) |
+| `switchLocked` | bool | `settings.switch_locked` — блокирует смену mode |
+| `splitTunnelMode` | string | `exclude` \| `include` \| `""` |
+| `splitTunnelCount` | number | `#split_tunnel_hosts + #split_tunnel_ips` (элементы — объекты `{value,description}`) |
+| `trace` | table | `{ warp: string, ip: string, loc: string, colo: string, atMs: number }`; `atMs = 0` — не запрашивался |
+| `cliVersion` | string | `2026.8.2110.0`, `""` если не удалось прочитать |
+| `updatedAtMs` | number | `noctalia.nowMs()` последней успешной публикации статуса |
+
+Правила публикации:
+
+- публикуется целиком одной таблицей (никаких плоских `warp.mode` и т.п.);
+- дефолт при старте: `phase = "unknown"`, `available = false`, `registered = false`,
+  `families = "unknown"`, `protocol = "unknown"`, `mode = ""`, `trace.atMs = 0`;
+- сервис сравнивает таблицу по «отпечатку» (конкатенация значимых полей) и не пишет,
+  если ничего не изменилось;
+- `busy = true` ставится **до** запуска мутации, снимается в callback.
+
+### 3.2. `warp.command` (writer: UI-entry, reader: service)
+
+```luau
+{
+  seq = 1792437046123,
+  action = "set-mode",
+  mode = "warp+doh",
+  source = "panel",
+}
+```
+
+| Поле | Тип | Обязательно | Значение |
+|------|-----|-------------|----------|
+| `seq` | number | да | `noctalia.nowMs()` на момент записи; сервис игнорирует `seq <= lastHandledSeq` |
+| `action` | string | да | `toggle` \| `connect` \| `disconnect` \| `refresh` \| `set-mode` \| `set-families` \| `set-protocol` \| `register` |
+| `mode` | string | для `set-mode` | одно из 7 значений §5.2 |
+| `families` | string | для `set-families` | `off` \| `malware` \| `full` |
+| `protocol` | string | для `set-protocol` | `wireguard` \| `masque` |
+| `source` | string | нет | `widget` \| `shortcut` \| `panel` \| `cli` — только для лога |
+
+Сервис обязан провалидировать каждое поле по whitelist **до** построения argv. Ни одно
+поле команды не попадает в shell-строку.
+
+### 3.3. Ограничение Families
+
+`warp-cli dns families` — **write-only**: геттера нет, значение не появляется в
+`settings list` (проверено, см. API-NOTES §4).
+
+- при инициализации сервиса `families` принудительно `unknown`;
+- после успешного `dns families <X>` — `X`;
+- после рестарта сервиса — снова `unknown` (state переживает рестарт, поэтому сервис
+  перезаписывает поле, а не читает старое);
+- панель не показывает предвыбранный вариант как факт (UI — §8.4).
 
 ---
 
-## 5. Функционал по entry
+## 4. IPC-контракт
 
-### 5.1. Service
+### 4.1. Сервис
 
-- Top-level: init + `setUpdateInterval(poll_ms)`.
-- `update()`: poll status → parse → state → notify on change.
-- `onConfigChanged()`: перечитать poll interval.
-- `onIpc(event, payload)`: `toggle`, `connect`, `disconnect`, `set-mode`, `set-families`, `set-protocol`, `refresh`, `register`.
-- `onEnable()` / `onExit(signal, reason)`.
+```
+noctalia msg plugin code-warlord/cloudflare-warp:service all <event> [payload]
+```
 
-Все subprocess — через `noctalia.runAsync`. Никогда не блокировать `update()`.
+| Event | Payload | Поведение | С какой фазы |
+|-------|---------|-----------|--------------|
+| `toggle` | — | disconnect, если `phase` ∈ {`connected`,`connecting`}, иначе connect | 1 |
+| `connect` | — | `warp-cli connect` | 1 |
+| `disconnect` | — | `warp-cli disconnect` | 1 |
+| `refresh` | — | внеочередной status + settings + trace (если разрешён) | 1 |
+| `set-mode` | `warp`\|`doh`\|`warp+doh`\|`dot`\|`warp+dot`\|`proxy`\|`tunnel_only` | `warp-cli mode <M>` | 1 |
+| `set-families` | `off`\|`malware`\|`full` | `warp-cli dns families <F>` | 1 |
+| `set-protocol` | `wireguard`\|`masque` (регистр не важен) | `warp-cli tunnel protocol set <WireGuard\|MASQUE>` | 1 |
+| `register` | — | `warp-cli registration new` | 3 |
 
-### 5.2. Bar Widget
+Правила:
 
-**Иконки — SVG, не glyph.**  
-Причина: бренд Cloudflare/WARP узнаваем; glyph из Tabler не передаёт identity. API: `barWidget.setImage(path [, watch [, width [, height]]])` (путь относительно каталога плагина) или `ui.image` внутри `barWidget.render()`.
+- payload всегда **строка**; отсутствующий аргумент приходит как `""`, а не `nil`;
+- неизвестный event или payload вне whitelist → строка в лог `noctalia.log("cloudflare-warp: warn …")`
+  (у `noctalia.log` нет уровней — префикс в тексте), состояние не меняется, команда не выполняется;
+- каждый принятый event пишется в лог одной строкой
+  `cloudflare-warp: ipc <event> payload=<payload>`;
+- `set-mode` при `switchLocked = true` → `notifyError(tr("error.mode-locked"))`, без вызова CLI.
 
-| Status | SVG asset | Текст (если `show_text_in_bar`) |
-|--------|-----------|----------------------------------|
-| connected | `assets/icons/warp-on.svg` | "On" / "WARP" |
-| disconnected | `assets/icons/warp-off.svg` | "Off" |
-| connecting | `assets/icons/warp-connecting.svg` | "…" |
-| unregistered | `assets/icons/warp-warn.svg` | "Reg" |
-| error | `assets/icons/warp-error.svg` | "Err" |
-| unknown | `assets/icons/warp-off.svg` | "?" |
+### 4.2. Панель
 
-**Требования к SVG:**
+```
+noctalia msg panel-toggle code-warlord/cloudflare-warp:panel
+```
 
-- Монохромные (один `currentColor` / `fill="#fff"`), чтобы хост мог тонировать под тему **или** готовые пары light/dark — на усмотрение implementer.
-- ViewBox квадратный (например `0 0 24 24`), без лишних margins.
-- Размер в баре: `setImage("assets/icons/….svg", false, 16, 16)` (или scale от bar); не растягивать огромные файлы.
-- Лицензия: оригинальный Cloudflare mark только если разрешено ToS; иначе **stylized WARP mark** собственной отрисовки (щит/облако/дуга), без копирования proprietary logo 1:1. Зафиксировать в README.
+Внутри скрипта: `noctalia.togglePanel("code-warlord/cloudflare-warp:panel")`.
 
-**Fallback:** если SVG не загрузился — `barWidget.setGlyph("cloud-lock")` + log.
+### 4.3. Внутренний канал
 
-- `onClick()` → command queue / IPC toggle
-- `onRightClick()` → `noctalia.togglePanel("community/cloudflare-warp:panel")`
-- Tooltip: status, mode, families, ip, error
+UI-entry не могут вызывать IPC из скрипта. Они пишут таблицу в `warp.command` (§3.2),
+сервис получает её через `noctalia.state.watch("warp.command", fn)`.
 
-### 5.3. Control Center Shortcut
+---
 
-- `checked` = (status == "connected")
-- `onClick()` → toggle
+## 5. Внешняя зависимость и команды
 
-### 5.4. Panel
+### 5.1. argv-база
 
-Декларативный UI:
+```luau
+local CLI = { "warp-cli", "--accept-tos", "--json", "--no-paginate", "--no-ansi" }
+```
 
-1. Header — статус + Connect/Disconnect
-2. Status card — mode, families, protocol, IP, loc
-3. Mode selector
-4. Families selector
-5. Protocol selector
-6. Actions: Refresh, Register, Copy IP, Open Settings
-7. Footer — версия / docs
+`--accept-tos` означает принятие ToS Cloudflare от имени пользователя — это фиксируется в
+README плагина.
 
-Все действия → IPC к service.
+| Действие | argv (suffix) | Timeout, ms | Когда |
+|----------|---------------|-------------|-------|
+| status | `status` | 8000 | каждый `update()` |
+| settings | `settings`, `list` | 8000 | каждый 5-й тик и после мутации |
+| registration | `registration`, `show` | 8000 | каждый 10-й тик и после `register` |
+| connect | `connect` | 15000 | по команде |
+| disconnect | `disconnect` | 15000 | по команде |
+| mode | `mode`, `<MODE>` | 15000 | по команде |
+| families | `dns`, `families`, `<MODE>` | 15000 | по команде |
+| protocol | `tunnel`, `protocol`, `set`, `<PROTOCOL>` | 15000 | по команде |
+| register | `registration`, `new` | 30000 | по команде |
+| version | `warp-cli --version` (без JSON-флагов) | 5000 | один раз при старте сервиса |
+
+Все вызовы — **только argv-форма**: `noctalia.runAsync({...}, cb, timeoutMs)`.
+
+### 5.2. Разбор status
+
+JSON: `{"status":"Connected","reason":"NetworkHealthy"}`.
+
+| `status` (lowercase, substring) | `phase` |
+|---------------------------------|---------|
+| `connected` | `connected` |
+| `connecting`, `reconnecting` | `connecting` |
+| `disconnecting` | `disconnecting` |
+| `disconnected` | `disconnected` |
+| `registration missing`, `not registered` | `unregistered` |
+| `unable to connect` | `error` |
+| иное | `unknown` |
+
+Текстовый fallback при ошибке `json.decode`: `stdout:match("Status update:%s*(%S+)")`.
+
+### 5.3. Разбор settings
+
+JSON: `decoded.settings` (см. API-NOTES §3.2).
+
+Текстовый fallback (построчный `Label: value`):
+
+| Поле state | Паттерн | Нормализация |
+|------------|---------|--------------|
+| `mode` | `Mode:%s*([^\n]+)` | trim + lowercase |
+| `protocol` | `WARP tunnel protocol:%s*(%S+)` | lowercase |
+| `alwaysOn` | `Always On:%s*(%S+)` | `== "true"` |
+| `switchLocked` | `Switch Locked:%s*(%S+)` | `== "true"` |
+
+Если JSON декодировался, но `settings` отсутствует — считать ответ неуспешным
+(`errorCode = "decode-failed"`) и не затирать уже известные поля.
+
+### 5.4. Классификация ошибок
+
+| Условие | `phase` | `errorCode` | `daemonOk` |
+|---------|---------|-------------|------------|
+| `not commandExists("warp-cli")` | `unavailable` | `cli-missing` | `false` |
+| `runAsync` вернул `false` (не запустилось) | `error` | `cli-missing` \| `command-failed` | как было |
+| `result.timedOut` | `error` | `timeout` | как было |
+| exit ≠ 0 и stderr ~ `Registration`/`not registered` | `unregistered` | `unregistered` | `true` |
+| exit ≠ 0 и stderr ~ `daemon`/`socket`/`connect to`/`service` | `error` | `daemon-down` | `false` |
+| exit ≠ 0 иное | `error` | `command-failed` | `true` |
+| JSON не декодировался и текстовый парсер не дал `phase` | `unknown` | `decode-failed` | `true` |
+
+`message` = `stderr` (обрезанный до 300 символов) либо `""`.
+
+### 5.5. Trace (egress identity)
+
+```luau
+noctalia.http({ url = "https://www.cloudflare.com/cdn-cgi/trace" }, function(res)
+  -- res.ok, res.status, res.body
+end)
+```
+
+Разбор: строки `k=v`; берём `warp` (`on`|`off`|`plus`), `ip`, `loc`, `colo`. Успех →
+`trace = {…, atMs = nowMs()}`. Ошибка/`not res.ok`/таймаут → оставить прежний `trace`,
+увеличить **внутренний** счётчик неудач (не поле state; используется только для
+rate-limit лога — писать раз в N подряд, а не каждый тик). Никогда не блокирует
+статус-поллинг.
+
+Частота: `auto_trace = true` → раз в `trace_interval_s`; `false` → только по `refresh`.
+
+Сеть: один HTTPS GET к `www.cloudflare.com` раз в 60 с по умолчанию. Это единственный
+network call плагина и он должен быть указан в README и PR.
+
+### 5.6. Уведомления
+
+| Триггер | Условие |
+|---------|---------|
+| `connected` ↔ `disconnected` | `notify_on_change = true`, первая публикация после старта не считается |
+| новый непустой `errorCode` (кроме `cli-missing`) | `notify_on_error = true`, не чаще одного раза на код |
+| `register` завершился по таймауту | всегда `notifyError(tr("error.register-pending"))`; `errorCode` не ставится |
+
+Тексты — только через `noctalia.tr(...)`.
 
 ---
 
 ## 6. Настройки
 
+Plugin-level (`[[setting]]` в корне) — общие для service и panel:
+
+| key | type | default | min/max | Описание |
+|-----|------|---------|---------|----------|
+| `poll_interval_ms` | int | 3000 | 1000 / 60000 | Интервал опроса статуса |
+| `notify_on_change` | bool | true | — | Уведомлять о connect/disconnect |
+| `notify_on_error` | bool | true | — | Уведомлять о новых ошибках |
+| `auto_trace` | bool | true | — | Периодический `cdn-cgi/trace` |
+| `trace_interval_s` | int | 60 | 15 / 3600 | Интервал trace; `visible_when = { key = "auto_trace", values = ["true"] }` |
+
+Widget-scope (`[[widget.setting]]`) — только представление бара:
+
 | key | type | default | Описание |
 |-----|------|---------|----------|
-| `poll_interval_ms` | int | 3000 | Интервал опроса (min 1000) |
-| `notify_on_change` | bool | true | Notify connect/disconnect |
-| `notify_on_error` | bool | true | Notify errors |
-| `auto_trace` | bool | true | Периодический cdn-cgi/trace |
-| `trace_interval_s` | int | 60 | Интервал trace |
-| `show_text_in_bar` | bool | true | Текст рядом с иконкой |
-| `compact_mode` | bool | false | Только иконка |
+| `show_text_in_bar` | bool | true | Показывать текст рядом с иконкой |
+| `compact_mode` | bool | false | Только иконка (перекрывает `show_text_in_bar`) |
+
+Правило: каждая объявленная настройка должна читаться литеральным
+`noctalia.getConfig("<key>")` — иначе `noctalia plugins lint` даёт warning.
 
 ---
 
 ## 7. Манифест (каркас)
 
 ```toml
-id           = "community/cloudflare-warp"
+id           = "code-warlord/cloudflare-warp"
 name         = "Cloudflare WARP"
 version      = "0.1.0"
-plugin_api   = 17
-author       = "community"
+plugin_api   = 24
+author       = "code-warlord"
 license      = "MIT"
-icon         = "cloud-lock"   # catalog glyph only; bar uses SVG assets
-description  = "Control Cloudflare WARP from the bar, control center and a dedicated panel."
+icon         = "cloud-lock"
+description  = "Control Cloudflare WARP from the bar, Control Center and a dedicated panel."
 tags         = ["network", "vpn", "privacy", "cloudflare"]
 dependencies = ["cloudflare-warp"]
+
+[[setting]]
+key             = "poll_interval_ms"
+type            = "int"
+label_key       = "settings.poll_interval.label"
+description_key = "settings.poll_interval.description"
+default         = 3000
+min             = 1000
+max             = 60000
+
+[[setting]]
+key         = "notify_on_change"
+type        = "bool"
+label_key   = "settings.notify_on_change.label"
+default     = true
+
+[[setting]]
+key         = "notify_on_error"
+type        = "bool"
+label_key   = "settings.notify_on_error.label"
+default     = true
+
+[[setting]]
+key             = "auto_trace"
+type            = "bool"
+label_key       = "settings.auto_trace.label"
+description_key = "settings.auto_trace.description"
+default         = true
+
+[[setting]]
+key             = "trace_interval_s"
+type            = "int"
+label_key       = "settings.trace_interval.label"
+description_key = "settings.trace_interval.description"
+default         = 60
+min             = 15
+max             = 3600
+visible_when    = { key = "auto_trace", values = ["true"] }
 
 [[service]]
 id    = "service"
@@ -192,89 +377,236 @@ entry = "service.luau"
 [[widget]]
 id    = "widget"
 entry = "widget.luau"
-  [widget.actions]
-  right = "none"
+
+[widget.actions]
+right = "none"
+
+[[widget.setting]]
+key       = "show_text_in_bar"
+type      = "bool"
+label_key = "settings.show_text_in_bar.label"
+default   = true
+
+[[widget.setting]]
+key       = "compact_mode"
+type      = "bool"
+label_key = "settings.compact_mode.label"
+default   = false
 
 [[shortcut]]
 id    = "shortcut"
 entry = "shortcut.luau"
 
 [[panel]]
-id    = "panel"
-entry = "panel.luau"
+id             = "panel"
+entry          = "panel.luau"
+width          = 380
+height         = 460
+placement      = "floating"
+position       = "auto"
+open_near_click = true
 ```
+
+`[widget.actions] right = "none"` обязателен: без него правый клик перехватывается
+действием, и `onRightClick` не вызывается.
 
 ---
 
-## 8. Структура директории
+## 8. Функционал по entry
+
+### 8.1. Service
+
+- Top-level: `commandExists`, чтение настроек, `setUpdateInterval`, регистрация
+  `state.watch("warp.command", …)`, первая публикация `warp.status`, чтение `cliVersion`.
+- `update()`: статус каждый тик; settings/registration — по счётчику тиков; trace — по таймеру.
+- `onIpc(event, payload)` — §4.1.
+- `onConfigChanged()` — перечитать настройки, применить `setUpdateInterval`, сбросить таймер trace.
+- `onEnable()` — лог + внеочередной `refresh` (не дублировать, если он уже идёт).
+- `onExit(signal, reason)` — лог; detached-процессы не убиваем (короткие вызовы CLI).
+- Все вызовы — с in-flight guard на каждый тип команды; мутации — через общий `actionInFlight`.
+- `busy` из state блокирует повторные мутации на стороне UI.
+
+### 8.2. Bar Widget
+
+Императивный путь (не `barWidget.render`):
+
+```luau
+barWidget.setImage(iconPath(phase), false, 16, 16)   -- SVG
+barWidget.setText(text)                               -- "" если compact/hidden
+barWidget.setTooltip(rows)                            -- массив { key, value }
+barWidget.setVisible(true)
+```
+
+| `phase` | SVG | Текст |
+|---------|-----|-------|
+| `connected` | `assets/icons/warp-on.svg` | `tr("widget.text.on")` |
+| `disconnected` | `assets/icons/warp-off.svg` | `tr("widget.text.off")` |
+| `connecting` / `disconnecting` | `assets/icons/warp-connecting.svg` | `tr("widget.text.connecting")` |
+| `unregistered` | `assets/icons/warp-warn.svg` | `tr("widget.text.register")` |
+| `error` / `unavailable` | `assets/icons/warp-error.svg` | `tr("widget.text.error")` |
+| `unknown` | `assets/icons/warp-off.svg` | `tr("widget.text.unknown")` |
+
+- Fallback: `barWidget.setGlyph("cloud-lock")`, если файл иконки не найден/не отрисован.
+- `onClick()` → `warp.command = { seq, action = "toggle", source = "widget" }`
+  (игнорировать при `busy`).
+- `onRightClick()` → `noctalia.togglePanel("code-warlord/cloudflare-warp:panel")`.
+- Tooltip — массив строк: status, mode, families (если известен), protocol, ip, error.
+- Подписка: `noctalia.state.watch("warp.status", applyStatus)` + первичный `get`.
+- Состояние читается только из state; никаких CLI-вызовов из виджета.
+
+### 8.3. Control Center Shortcut
+
+`shortcut.setLabel`, `shortcut.setIcon(onGlyph, offGlyph)`, `shortcut.setActive`,
+`shortcut.setEnabled`.
+
+- SVG здесь недоступен: `setIcon` принимает только glyph-имена (`"cloud-lock"` /
+  `"cloud-off"`); это ограничение API, а не упрощение.
+- `setActive(phase == "connected" or phase == "connecting")`.
+- `setEnabled(available and not busy)`.
+- `onClick()` → toggle; `onRightClick()` → refresh.
+- `onExit` не нужен (нет ресурсов).
+
+### 8.4. Panel
+
+Декларативный `panel.render(ui.…)` в `onOpen` и после каждого изменения.
+
+```
+ui.column
+  ├─ header: glyph статуса, title, статус-текст, кнопка Refresh, Close
+  ├─ status card: mode, protocol, families, IP + loc + colo, updatedAt
+  ├─ ui.select Mode                  (7 значений, disabled при switchLocked)
+  ├─ Families: 3 ui.button (segmented) + caption про unknown
+  ├─ ui.select Protocol              (WireGuard / MASQUE)
+  ├─ actions: Copy IP | Register (если !registered) | Settings
+  └─ footer: cliVersion + подсказка
+```
+
+- Families — **кнопки**, а не `ui.select`: у `select` нет «пустого» выбора, и он визуально
+  соврёт про текущее значение. Кнопки: `selected = (families == value)`, при `unknown`
+  ни одна не выбрана + caption `tr("panel.families.unknown")`.
+- Mode/Protocol — `ui.select`; `onChange(index)` приходит строкой → `tonumber`.
+- Протокол в state — lowercase, в UI — `WireGuard` / `MASQUE`.
+- `trace.atMs == 0` → вместо IP показывать `tr("panel.trace.none")`, Copy IP disabled.
+- Время trace — `noctalia.formatTime("%H:%M", math.floor(trace.atMs / 1000))`.
+- Copy IP: `noctalia.copyToClipboard(trace.ip, "text/plain")`.
+- Settings: `noctalia.openSettings()`.
+- Register: `warp.command.action = "register"`; показывать/включать только при `!registered`.
+- `busy` → дизейбл всех мутирующих контролов + спиннер-глиф.
+- Размер: `width = 380`, `height = 460` (host-owned, задаётся в манифесте).
+
+---
+
+## 9. Структура директории
 
 ```
 cloudflare-warp/
 ├── plugin.toml
-├── service.luau
-├── widget.luau
-├── shortcut.luau
-├── panel.luau
+├── service.luau                 # P0 stub → P1 полный
+├── widget.luau                  # P0 stub → P2
+├── shortcut.luau                # P0 stub → P2
+├── panel.luau                   # P0 stub → P3
 ├── lib/
-│   ├── parse.luau
-│   ├── commands.luau
-│   ├── state.luau
-│   └── icons.luau          # map status → asset path + setImage helper
+│   ├── state.luau               # P0: константы каналов + schema; P1: publish/patch
+│   ├── parse.luau               # P0: пустой модуль; P1: парсеры
+│   ├── commands.luau            # P0: пустой модуль; P1: argv + run-обёртки
+│   └── icons.luau               # P2: phase → svg path / glyph / text key
 ├── translations/
 │   ├── en.json
 │   └── ru.json
 ├── assets/
 │   └── icons/
-│       ├── warp-on.svg
-│       ├── warp-off.svg
-│       ├── warp-connecting.svg
-│       ├── warp-warn.svg
-│       └── warp-error.svg
+│       ├── warp-on.svg          # P2
+│       ├── warp-off.svg         # P2
+│       ├── warp-connecting.svg  # P2
+│       ├── warp-warn.svg        # P2
+│       └── warp-error.svg       # P2
+├── thumbnail.webp               # P4
 └── README.md
 ```
 
----
-
-## 9. UI/UX
-
-1. Бар — минимальный footprint; в compact только SVG-иконка (без текста).
-2. Иконки — **SVG assets**, не Tabler glyph (см. §5.2). Glyph только fallback и catalog `icon`.
-3. Цвета текста/tooltip — роли палитры; SVG по возможности монохром + tint, либо отдельные on/off варианты.
-4. Control Center shortcut — та же SVG-пара (on/off) + checked state.
-5. Панель ~360–420 px, floating, `layer = "top"`; в header можно тот же SVG крупнее.
-6. Tooltip всегда информативен.
+Каждый модуль обязан возвращать ровно одно не-`nil` значение (`return M`).
+`require` — только `./lib/<name>.luau` (относительный, с расширением).
 
 ---
 
-## 10. IPC-контракт
+## 10. UI/UX
+
+1. Бар — минимальный footprint; в `compact_mode` только SVG 16×16.
+2. SVG — собственная стилизованная отрисовка WARP-состояния, `viewBox="0 0 24 24"`,
+   `currentColor`/один `fill`. Официальный логотип Cloudflare не копировать 1:1;
+   в README — note про trademark.
+3. Цвета текста — роли палитры (`primary`, `on_surface_variant`, `error`, `success`).
+4. Клики: ЛК toggle, ПК панель. Это **инверсия** относительно `levi/warp`
+   (там ЛК — панель) — зафиксировать в README, чтобы не выглядело багом.
+5. Панель — floating, `position = "auto"`, `open_near_click = true`, 380×460.
+6. Tooltip всегда информативен и локализован.
+7. Тексты статуса: `connected`, `disconnected`, `connecting`, `disconnecting`,
+   `unregistered`, `error`, `unavailable`, `unknown` — все через `tr("status.<phase>")`.
+
+---
+
+## 11. Локальная валидация и тестирование
+
+Команды `noctalia validate-plugin` **не существует**. Реальный workflow:
 
 ```bash
-noctalia msg plugin community/cloudflare-warp:service all toggle
-noctalia msg plugin community/cloudflare-warp:service all refresh
-noctalia msg plugin community/cloudflare-warp:service all set-mode "warp+doh"
-noctalia msg panel-toggle community/cloudflare-warp:panel
+# 1. офлайн: settings ↔ getConfig, наличие entry-файлов
+noctalia plugins lint cloudflare-warp
+
+# 2. path-source на КОРЕНЬ репозитория (каталог cloudflare-warp/ = суффикс id)
+noctalia msg plugins source add warpdev path /home/code_warlord/DEV/cloudflare-warp-plugin
+
+# 3. видимость и включение
+noctalia msg plugins list | grep cloudflare-warp
+noctalia msg plugins enable code-warlord/cloudflare-warp
+
+# 4. IPC и панель
+noctalia msg plugin code-warlord/cloudflare-warp:service all refresh
+noctalia msg plugin code-warlord/cloudflare-warp:service all toggle
+noctalia msg panel-toggle code-warlord/cloudflare-warp:panel
+
+# 5. наблюдение
+tail -f ~/.cache/noctalia/noctalia.log
+
+# 6. выключение и уборка
+noctalia msg plugins disable code-warlord/cloudflare-warp
+noctalia msg plugins source remove warpdev
 ```
+
+- `.luau` — hot-reload по сохранению; `plugin.toml` — `noctalia msg config-reload`.
+- `plugins lint` возвращает exit 1 при error-level проблемах, но **не** проверяет
+  translations, панельные опции и не исполняет код. Зелёный lint ≠ рабочий плагин;
+  настоящий гейт — enable + чистый лог.
+- Полная валидация манифеста/каталога/thumbnail — только CI `community-plugins` (Phase 5).
 
 ---
 
-## 11. Риски
+## 12. Риски
 
 | Риск | Митигация |
 |------|-----------|
-| Формат `warp-cli` меняется | Толерантный парсер, fallback `unknown` |
-| Демон не запущен | Чёткое сообщение |
-| Не зарегистрирован | Отдельный status + Register |
-| Proxy-mode | Не форсировать full-tunnel |
-| Trusted code | Явно документировать все runAsync / network |
+| Формат `warp-cli` меняется | JSON-first + текстовый fallback + `unknown` |
+| Нет геттера Families | `unknown` как честное состояние, UI не врёт |
+| Демон не запущен | `daemonOk=false` + `errorCode=daemon-down`, без падения |
+| Клиент не зарегистрирован | `phase=unregistered`, кнопка Register (P3) |
+| `switch_locked` (MDM) | блокировать смену mode + объяснить в UI |
+| SVG не растеризуется хостом | glyph-fallback + проверка в Phase 2 |
+| `http()` без timeout | in-flight guard + устаревание по `atMs` |
+| payload → shell | только argv + whitelist |
+| license/public_key утекут в state | в state только `registered`/`accountType` |
+| Два WARP-плагина включены | QA выключает `levi/warp` и `code_warlord/warp_toggle` |
 
 ---
 
-## 12. Ссылки
+## 13. Ссылки
 
+- [docs/API-NOTES.md](./API-NOTES.md) — проверенные факты и ограничения
 - https://docs.noctalia.dev/noctalia/plugins/development/
 - https://docs.noctalia.dev/noctalia/plugins/development/manifest/
 - https://docs.noctalia.dev/noctalia/plugins/development/entries/
 - https://docs.noctalia.dev/noctalia/plugins/development/runtime-api/
 - https://docs.noctalia.dev/noctalia/plugins/development/declarative-ui/
-- https://github.com/noctalia-dev/official-plugins
+- https://docs.noctalia.dev/noctalia/plugins/development/plugin-api/
+- https://docs.noctalia.dev/noctalia/plugins/development/workflow/
+- https://github.com/noctalia-dev/official-plugins (`screen_recorder`, `example`)
 - https://developers.cloudflare.com/warp-client/get-started/linux/

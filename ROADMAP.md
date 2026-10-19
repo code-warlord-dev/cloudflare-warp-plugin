@@ -18,7 +18,7 @@
 - [ ] `lib/` заготовки + `translations/en.json`, `ru.json`
 - [ ] README с зависимостью `cloudflare-warp`
 - [ ] Локальный `path`-source + enable
-- [ ] `noctalia validate-plugin` проходит
+- [ ] `noctalia plugins lint cloudflare-warp` → `0 errors, 0 warnings`
 
 **DoD:** плагин виден в Settings → Plugins, enable не падает.
 
@@ -106,7 +106,7 @@
 
 - [ ] Catalog entry / thumbnail
 - [ ] PR по шаблону (см. templates/PR.md)
-- [ ] CI validate-plugin проходит
+- [ ] CI `community-plugins` проходит (полная валидация манифеста, переводов, thumbnail)
 - [ ] Явный список всех `runAsync` и network calls в PR body
 - [ ] Semver `1.0.0`
 

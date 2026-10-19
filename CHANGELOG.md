@@ -12,6 +12,10 @@ Versioning follows [SemVer](https://semver.org/) — see [VERSIONING.md](./VERSI
 ### Added
 ### Changed
 - Spec decision: bar/shortcut icons use **SVG assets** (`barWidget.setImage`), not Tabler glyphs; glyphs remain fallback only.
+- Docs/specs re-verified against Noctalia **5.3.0** and `warp-cli 2026.8.2110.0`: `plugin_api = 24`,
+  argv-only `runAsync`, one nested state table per channel, `noctalia.http` for trace, real
+  `noctalia plugins lint` workflow. Added [docs/API-NOTES.md](./docs/API-NOTES.md) as the
+  canonical fact sheet; Phase 0–5 specs made executable.
 ### Fixed
 ### Removed
 

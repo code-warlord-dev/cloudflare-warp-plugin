@@ -14,6 +14,7 @@
 | [CHANGELOG.md](./CHANGELOG.md) | История изменений |
 | [STATE.md](./STATE.md) | Живой статус (читать первым) |
 | [AGENTS.md](./AGENTS.md) | Оркестратор и субагенты |
+| [docs/API-NOTES.md](./docs/API-NOTES.md) | Проверенные факты о Noctalia 5.3.0 / warp-cli / `plugins lint` |
 | [specs/](./specs/) | Executable specs по фазам |
 | [.agents/skills/](./.agents/skills/) | Skills для агентов |
 | [templates/](./templates/) | Commit / PR / Push |
@@ -40,4 +41,8 @@
 
 ## Статус
 
-См. [STATE.md](./STATE.md). Сейчас: **0.0.0**, Phase 0 не начата.
+См. [STATE.md](./STATE.md). Сейчас: **0.0.0**, Phase 0 не начата — документация и phase-specs сверены
+с реальным Noctalia 5.3.0 и `warp-cli` (см. [docs/API-NOTES.md](./docs/API-NOTES.md)), код ещё не написан.
+
+Локальный гейт качества — `noctalia plugins lint cloudflare-warp` (команды `noctalia validate-plugin`
+не существует).

@@ -38,7 +38,7 @@
 | **architect** | Декомпозирует SPEC → task specs, API contracts, IPC | Перед началом фазы / крупной фичи | `architect`, `noctalia-plugin` |
 | **implementer** | Пишет Luau / plugin.toml / lib | По task-spec от architect | `implementer`, `noctalia-plugin`, `luau` |
 | **reviewer** | Code review, API compliance, security (runAsync/network) | Перед каждым PR | `reviewer`, `noctalia-plugin` |
-| **qa** | Ручные/IPC тесты, validate-plugin, hot-reload | После implementer | `qa`, `noctalia-runtime` |
+| **qa** | Ручные/IPC тесты, `noctalia plugins lint`, hot-reload | После implementer | `qa`, `noctalia-plugin` |
 | **docs** | README, translations, CHANGELOG entries, PR body | Параллельно / после кода | `docs-i18n` |
 | **spec-writer** | Пишет детальные phase-specs в `specs/` | По запросу orchestrator | `spec-writer` |
 
@@ -101,7 +101,7 @@ OUTPUT:
 ### Implementer
 
 - Вход: task-spec + acceptance.
-- Выход: код в `cloudflare-warp/`, зелёный `validate-plugin` (локально).
+- Выход: код в `cloudflare-warp/`, зелёный `noctalia plugins lint` + чистый enable в логе.
 - Следует skills `noctalia-plugin` и `luau`.
 - Все `runAsync` / network — явно комментирует в PR notes.
 
@@ -145,7 +145,7 @@ Implement onIpc handlers: toggle, connect, disconnect, refresh.
 - [ ] missing warp-cli → status=error, no crash
 
 ### Constraints
-- plugin_api stays 17
+- plugin_api stays 24
 - no new settings in this task
 - bump: none (part of 0.2.0 work)
 

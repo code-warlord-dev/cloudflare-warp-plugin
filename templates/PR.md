@@ -47,9 +47,9 @@ List **every** subprocess and network call introduced or changed:
 
 | Call | When | Data |
 |------|------|------|
-| `warp-cli status` | service poll / refresh | local CLI |
-| `warp-cli connect` | IPC connect/toggle | local CLI |
-| `curl https://www.cloudflare.com/cdn-cgi/trace` | optional trace | Cloudflare |
+| `warp-cli status` (argv) | service poll / refresh | local CLI |
+| `warp-cli connect` / `disconnect` (argv) | IPC connect/toggle | local CLI |
+| `HTTPS GET https://www.cloudflare.com/cdn-cgi/trace` (`noctalia.http`) | trace (default 60 s) | Cloudflare |
 
 ## Test plan
 

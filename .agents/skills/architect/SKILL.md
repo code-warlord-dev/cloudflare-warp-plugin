@@ -34,9 +34,14 @@ For each phase (or large task):
 
 ## Rules
 
-- Prefer **lowest** `plugin_api` that covers needed capabilities.
+- Prefer **lowest** `plugin_api` that covers needed capabilities (this project: `24` — modules at 22 + argv
+  `runAsync` at 24; never higher without a CHANGELOG + decision entry).
 - Service is the **only** writer of `warp.*` state.
 - UI entries only read state and send IPC.
+- State is written as a **single nested table** per namespace (`warp.status`, `warp.command`), not as many
+  sibling keys; include `seq = nowMs()` so the UI can drop stale snapshots. Spec the whole table, not loose fields.
+- Verify every CLI/API claim against `docs/API-NOTES.md` (or the installed binary) before writing it into a spec.
+  No invented commands, flags or host functions; no `noctalia validate-plugin` (does not exist).
 - No sudo. No secrets in repo.
 - Align naming with official plugins (`screen_recorder` pattern).
 

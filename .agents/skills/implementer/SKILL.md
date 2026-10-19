@@ -7,79 +7,132 @@ description: Write Luau entry scripts, lib modules, and plugin.toml for the Clou
 
 ## Identity
 
-You write the actual plugin code under `cloudflare-warp/`.
+Пишешь код плагина в `cloudflare-warp/`. Никаких решений по API/state — они уже приняты
+в `docs/SPEC.md` и phase-spec; расхождение → эскалация architect/orchestrator.
 
 ## Mandatory
 
-1. Read the task prompt + linked `specs/phase-*.md` + `docs/SPEC.md` sections.
-2. Follow `.agents/skills/noctalia-plugin/SKILL.md` and `.agents/skills/luau/SKILL.md`.
-3. Touch only files listed in the task (or justified extras — note them).
-4. After changes: mentally run acceptance; list what you verified.
+1. Прочитать task + `specs/phase-N-*.md` + `docs/SPEC.md` §3–§7 + `docs/API-NOTES.md`.
+2. Соблюдать `.agents/skills/noctalia-plugin/SKILL.md` и `luau/SKILL.md`.
+3. Трогать только файлы из task (лишние — обосновать).
+4. После изменений: `noctalia plugins lint cloudflare-warp` + enable + чтение лога.
 
 ## Patterns
+
+### Manifest
+
+```toml
+id         = "code-warlord/cloudflare-warp"
+plugin_api = 24
+```
+
+`[[setting]]` — в корне (все entry), `[[widget.setting]]` — только виджет.
+Каждый ключ читается литералом `noctalia.getConfig("key")`, иначе lint даст warning.
 
 ### Service
 
 ```luau
--- top-level init
+local State = require("./lib/state.luau")
+
 noctalia.setUpdateInterval(noctalia.getConfig("poll_interval_ms") or 3000)
 
+noctalia.state.watch("warp.command", function(cmd)
+  if type(cmd) ~= "table" or type(cmd.seq) ~= "number" then return end
+  if cmd.seq <= lastHandledSeq then return end
+  lastHandledSeq = cmd.seq
+  dispatch(cmd.action, cmd)
+end)
+
 function update()
-  -- runAsync status; on result update state
+  -- argv-вызовы с in-flight guard; публикация State.publish({...})
 end
 
 function onIpc(event, payload)
-  if event == "toggle" then
-    -- …
-  end
+  dispatch(event, { payload = payload, source = "cli" })
 end
 
 function onConfigChanged()
-  local ms = noctalia.getConfig("poll_interval_ms") or 3000
-  noctalia.setUpdateInterval(ms)
+  noctalia.setUpdateInterval(noctalia.getConfig("poll_interval_ms") or 3000)
 end
 ```
 
-### Widget
+### UI entry (widget / shortcut / panel)
 
 ```luau
-function update()
-  local status = noctalia.state.get("warp.status") or "unknown"
-  -- setGlyph / setText / setTooltip
+local function applyStatus(value)
+  if type(value) ~= "table" then return end
+  status = value
+  render()
 end
 
-function onClick()
-  -- cannot call service directly; use IPC pattern via noctalia if available
-  -- or document that user uses noctalia msg; prefer host IPC helpers when exist
+applyStatus(noctalia.state.get("warp.status"))
+noctalia.state.watch("warp.status", applyStatus)
+
+local function send(action, extra)
+  noctalia.state.set("warp.command", {
+    seq = noctalia.nowMs(),
+    action = action,
+    source = "widget",
+    -- extra: mode / families / protocol
+  })
 end
 ```
 
-> Note: exact IPC-from-script helper depends on runtime API; prefer patterns from official `example` / `screen_recorder`.
+UI **никогда** не пишет `warp.status` и не вызывает CLI.
+
+### Bar widget
+
+```luau
+barWidget.setImage("assets/icons/warp-on.svg", false, 16, 16)
+barWidget.setText(showText and noctalia.tr("widget.text.on") or "")
+barWidget.setTooltip({ { key = "Status", value = noctalia.tr("status.connected") } })
+-- fallback:
+barWidget.setGlyph("cloud-lock")
+```
+
+После `barWidget.render(tree)` императивные вызовы не работают — не смешивать.
+
+### Panel
+
+```luau
+function onOpen(_context)
+  isOpen = true
+  applyStatus(noctalia.state.get("warp.status"))
+end
+
+function onClose() isOpen = false end
+```
+
+Размер панели — только в манифесте (`width`/`height`). `ui.select.onChange` получает
+индекс **строкой**.
 
 ### Subprocess
 
 ```luau
-noctalia.runAsync({"warp-cli", "status"}, function(result)
-  if result.exitCode ~= 0 then
-    noctalia.state.set("warp.status", "error")
-    noctalia.state.set("warp.error", result.stderr or "unknown")
-    return
-  end
-  -- parse result.stdout
-end)
+local CLI = { "warp-cli", "--accept-tos", "--json", "--no-paginate", "--no-ansi" }
+
+noctalia.runAsync({ table.unpack(CLI), "status" }, function(result)
+  if result.timedOut then … end
+  local decoded, err = noctalia.json.decode(result.stdout or "")
+  -- parse → State.publish
+end, 8000)
 ```
+
+Только argv-форма. Никаких shell-строк с payload, `curl`, `grep`, `awk`.
 
 ## Deliverable format
 
-1. List of files changed
-2. Summary of behavior
-3. Acceptance self-check
-4. Notes for CHANGELOG (`Added` / `Fixed` / …)
-5. Explicit list of every `runAsync` and network call
+1. Список файлов.
+2. Поведение.
+3. Self-check по acceptance (PASS/FAIL по пунктам).
+4. Notes для CHANGELOG (`Added`/`Fixed`).
+5. Явный список всех `runAsync` argv и network call.
 
 ## Forbidden
 
-- `sudo`
-- Hardcoded user-facing strings (use translation keys / noctalia patterns)
-- Writing state from widget/panel/shortcut
-- Raising `plugin_api` without task approval
+- `sudo`, `pkexec`, `systemctl`.
+- Hardcoded user-facing строки (только `noctalia.tr`).
+- Запись `warp.status` из widget/shortcut/panel.
+- Чтение `account.license`, `public_key`, `device_id` в state или лог.
+- `noctalia validate-plugin` (команды не существует).
+- Повышение `plugin_api` выше 24 без task-approval.
