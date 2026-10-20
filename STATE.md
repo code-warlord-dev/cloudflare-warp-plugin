@@ -10,13 +10,13 @@
 
 | Поле | Значение |
 |------|----------|
-| **Plugin version** | `0.4.1` (fix round committed on `feat/panel-redesign-v2`; tag pending) |
+| **Plugin version** | `0.4.1` (tag `v0.4.1`, merge `cb14a14`) |
 | **Roadmap phase** | Phase 3 — Panel **done** (0.4.0 + redesign v2 0.4.1 + owner fix round) |
-| **Branch** | `feat/panel-redesign-v2` |
+| **Branch** | `main` |
 | **Remote** | https://github.com/code-warlord-dev/cloudflare-warp-plugin |
-| **Last merge** | `3cf4813` chore(release): bump 0.3.0 -> 0.4.0 (origin/main) |
+| **Last merge** | `cb14a14` Merge PR #5 — panel fix round v0.4.1 (origin/main) |
 | **Blockers** | none — K-11 resolved: `plugins list` shows `code-warlord/cloudflare-warp [warpdev] 0.4.1` |
-| **Next action** | push branch + PR; merge + tag `v0.4.1`; then Phase 4 |
+| **Next action** | Phase 4 — Polish & i18n (v0.5.0) |
 
 ---
 
@@ -47,7 +47,7 @@
 | implementer | Owner fix round: no scroll / content height, full-bleed banner, 21 px hero, Families default Malware, animations, 400 px width | done | working tree, `feat/panel-redesign-v2` |
 | reviewer | Self-review fix round: no state/CLI/network writes, plugin_api 24, no fixture, i18n parity | done | APPROVE; lint 0/0; en/ru 98/98 |
 | qa | Live QA fix round: connected + fixture states, animations, no scrollbar/clipping at 400×672 | done | PASS; QA fixture removed before commit |
-| orchestrator | Docs update for fix round + merge/tag 0.4.1 | in progress | push, PR, merge, tag `v0.4.1` |
+| orchestrator | Docs update fix round + release 0.4.1 | done | PR #5 merged `cb14a14`; tag `v0.4.1` pushed |
 
 ---
 
@@ -81,6 +81,7 @@
 - [x] Panel redesign v2 закоммичен `0176f0e` на `feat/panel-redesign-v2` (без push/merge/tag)
 - [x] Owner fix round 0.4.1: убран `ui.scroll` и scrollbar, высота по контенту 400×672, full-bleed banner через отрицательный padding, hero 21 px, Families всегда с выбранным Malware, анимации (вход, акцент/баннер, progress, refresh pulse, hover), ширина 400
 - [x] QA fix round: connected + fixture-состояния, анимация connecting, отсутствие scrollbar и обрезания; временная фикстура удалена из `service.luau` до коммита
+- [x] Release 0.4.1: PR #5 merged в `main` (`cb14a14`), tag `v0.4.1` создан и запушен; 8 скриншотов обновлены под 400×672
 
 
 ---
