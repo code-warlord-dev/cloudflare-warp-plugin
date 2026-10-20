@@ -10,13 +10,13 @@
 
 | Поле | Значение |
 |------|----------|
-| **Plugin version** | `0.3.0` (tag `v0.3.0`) |
-| **Roadmap phase** | Phase 2 — Widget + Shortcut **done**; следующая Phase 3 — Panel |
+| **Plugin version** | `0.4.0` (tag `v0.4.0`) |
+| **Roadmap phase** | Phase 3 — Panel **done** (v0.4.0) |
 | **Branch** | `main` |
 | **Remote** | https://github.com/code-warlord-dev/cloudflare-warp-plugin |
-| **Last merge** | `87b1313` Merge PR #3 — Phase 2 widget + shortcut |
+| **Last merge** | `86b5e77` Merge PR #4 — Phase 3 panel |
 | **Blockers** | нет |
-| **Next action** | implementer: Phase 3 panel по `specs/phase-3-panel.md` (target `0.4.0`); ручной visual sign-off SVG на баре (K-02) за владельцем |
+| **Next action** | tag `v0.4.0`, push; ручной visual sign-off SVG на баре (K-02) за владельцем; K-10 при необходимости владельцем |
 
 ---
 
@@ -35,6 +35,10 @@
 | implementer | Phase 2 Widget + Shortcut (P2-T1) + fix round (State.setCommand, brand-key) | done | merged PR #3, `7653858` |
 | reviewer | Phase 2 review | done | APPROVE (1 minor → fix round, 5 nit) |
 | qa | Phase 2 live run на 5.3.0 | done | PASS (hot-reload, disable/enable, K-02 fallback, живые клики владельца; GUI-пункты — manual sign-off) |
+
+| implementer | Phase 3 Panel (panel.luau, service register, icons, translations) | done | `feat/phase-3-panel` → `release-0.4.0`, merged PR #4 |
+| reviewer | Phase 3 review (full + fix round) | done | APPROVE (ре-approv. после фиксов — лимит модели проверяющего; гейты верифицированы оркестратором: lint 0/0, панель без ошибок, register/refresh IPC, en/ru паритет) |
+| qa | Phase 3 live run на 5.3.0 | done | PASS (панель открывается, watch-колбэк чист, register/refresh через IPC без падений; GUI — manual) |
 
 ---
 
@@ -59,6 +63,10 @@
 - [x] Phase 2: reviewer APPROVE + fix round (setCommand, brand-key, комментарий fileExists)
 - [x] Phase 2: QA live PASS — hot-reload, disable/enable, K-02 fallback (одна WRN + glyph), живые клики владельца (source=widget)
 - [x] Phase 2: PR #3 merged, tag `v0.3.0`
+- [x] Phase 3: панель (заглушка → полная декларативная панель: header, status card, mode/families/protocol, identity, actions, footer), сервис `register` (registration new, 30 с таймаут, `error.register-pending`), `lib/icons.luau` (statusGlyph, phaseColor)
+- [x] Phase 3: reviewer fix round (README, футер `warp-cli {version}`, phaseColor → icons, onFamilies render), гейты lint 0/0 + паритет en/ru
+- [x] Phase 3: QA live PASS (панель открывается, watch-колбэк чист, register/refresh через IPC без падений), PR #4 merged, bump 0.4.0, CHANGELOG, STATE
+
 
 ---
 

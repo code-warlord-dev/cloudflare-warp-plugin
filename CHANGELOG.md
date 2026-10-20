@@ -7,12 +7,16 @@ Versioning follows [SemVer](https://semver.org/) — see [VERSIONING.md](./VERSI
 
 ---
 
-## [Unreleased]
+## [0.4.0] - 2026-10-20
 
 ### Added
-### Changed
-### Fixed
-### Removed
+- Phase 3 control panel: status card, mode (7) / families (3) / protocol (2) selectors, network identity, Copy IP / Register / Settings / Refresh actions (`cloudflare-warp/panel.luau`). All writes via `State.setCommand` source=`panel`; no runAsync, HTTP or file reads in the panel entry.
+- Service: `register` action → `warp-cli registration new`, 30 s timeout; a timed-out interactive sign-in reports `error.register-pending` (notify) instead of an error state; success refreshes registration + status.
+- `lib/icons.luau`: `statusGlyph` + `phaseColor` (SPEC 10.3).
+- Translations: `panel.*`, `mode.*`, `families.*`, `error.register-pending` with full en/ru parity.
+
+### Known limits
+- `warp-cli registration new` is interactive (browser sign-in); without a browser it cannot complete — the 30 s timeout surfaces `register-pending` rather than failing the plugin.
 
 ---
 
