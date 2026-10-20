@@ -10,13 +10,13 @@
 
 | Поле | Значение |
 |------|----------|
-| **Plugin version** | `0.4.1` (working tree; tag pending) |
+| **Plugin version** | `0.4.1` (commit `0176f0e`; tag pending) |
 | **Roadmap phase** | Phase 3 — Panel **done** (0.4.0 + redesign v2 0.4.1) |
 | **Branch** | `feat/panel-redesign-v2` |
 | **Remote** | https://github.com/code-warlord-dev/cloudflare-warp-plugin |
 | **Last merge** | `3cf4813` chore(release): bump 0.3.0 -> 0.4.0 (origin/main) |
 | **Blockers** | `warpqa` path source wins over `warpdev`: the running host loads 0.4.0 from the stale worktree. Owner decision needed to disable/remove `warpqa` or reorder sources. |
-| **Next action** | Commit 0.4.1 on the branch; owner visual sign-off; resolve `warpqa` precedence; merge + tag `v0.4.1`; then Phase 4 |
+| **Next action** | Owner visual sign-off; resolve `warpqa` precedence; push branch + PR; merge + tag `v0.4.1`; then Phase 4 |
 
 ---
 
@@ -43,7 +43,7 @@
 | reviewer | Redesign review (2 раунда + fix round) | done | APPROVE; lint 0/0; en/ru 99/99 |
 | qa | Redesign live QA + 8 screenshots | done | PASS; `docs/images/panel-*.png`; temp source/фикстуры восстановлены |
 | docs | README, CHANGELOG 0.4.1, `docs/DESIGN-PANEL.md`, root README | done | docs/DESIGN-PANEL.md |
-| orchestrator | Integration: STATE/ROADMAP/VERSIONING/SPEC + commit 0.4.1 | in_progress | no push/merge без владельца |
+| orchestrator | Integration: STATE/ROADMAP/VERSIONING/SPEC + commit 0.4.1 | done | commit `0176f0e`; no push/merge без владельца |
 
 ---
 
@@ -74,6 +74,7 @@
 - [x] Panel redesign v2 (0.4.1): banner color/idle PNG, phase accents, status-first hero + power, Mode/Protocol side by side, segmented Families, identity card, Copy IP/Settings footer, honest unknown values
 - [x] Redesign gates: reviewer APPROVE ×2, lint 0/0, en/ru 99/99, live QA PASS, 8 screenshots в `docs/images/`
 - [x] Redesign docs: `docs/DESIGN-PANEL.md`, plugin README Panel rewrite, root README status, CHANGELOG 0.4.1
+- [x] Panel redesign v2 закоммичен `0176f0e` на `feat/panel-redesign-v2` (без push/merge/tag)
 
 
 ---
