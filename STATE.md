@@ -106,6 +106,7 @@
 | 2026-10-20 | Уведомления по стабильной фазе (`lastStablePhase`, без `connecting`/`disconnecting`) | QA: toggle не давал пары connected→disconnected |
 | 2026-10-20 | Trace circuit breaker: пауза после 3 неудач, backoff `interval×10×2^level` (max 160×), обход через `refresh` | `noctalia.http` без опции таймаута, лог спамился WRN/мин |
 | 2026-10-20 | Whitelist протокола — только ASCII (`MÁSQUE` отклоняется) | спека исправлена под эмпирику, `string.lower` ASCII-only |
+| 2026-10-20 | Panel height reduced 900 → 650 (content-fitted, no `setSize` API) | фиксированная высота хоста подобрана под реальный контент (~660 px), без лишнего пустого пространства |
 | 2026-10-20 | Bar-иконки: цвета свои, тонировка хостом (`currentColor`) **не** используется; `*.mono.svg` — запасной набор | тонировка хостом не проверена (K-02), мульти-цветные stroke читаемы на обеих темах; моно без тонировки рисовался бы чёрным |
 
 ---

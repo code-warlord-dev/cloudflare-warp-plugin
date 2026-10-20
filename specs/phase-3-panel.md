@@ -27,8 +27,8 @@ Phase 1 (state + `warp.command`), Phase 2 (иконки/палитра сост�
 [[panel]]
 id              = "panel"
 entry           = "panel.luau"
-width           = 380
-height          = 460
+width           = 520
+height          = 650
 placement       = "floating"
 position        = "auto"
 open_near_click = true
@@ -196,7 +196,7 @@ end)
 - [ ] `grep -Rn "state.set" cloudflare-warp/panel.luau` → только `warp.command`.
 - [ ] `grep -Rn "runAsync\|noctalia.http" cloudflare-warp/panel.luau` → пусто.
 - [ ] `grep -n "width\|height\|placement\|open_near_click" cloudflare-warp/plugin.toml`
-      → 380 / 460 / floating / true.
+      → 520 / 650 / floating / true.
 - [ ] Все ключи `panel.*`, `mode.*`, `families.*`, `error.*` есть в en и ru.
 
 **B. Открытие**
