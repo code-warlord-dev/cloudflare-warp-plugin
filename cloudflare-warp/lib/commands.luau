@@ -33,6 +33,7 @@ end
 function M.statusArgv(): ({string}) return withBase({ "status" }) end
 function M.settingsArgv(): ({string}) return withBase({ "settings", "list" }) end
 function M.registrationArgv(): ({string}) return withBase({ "registration", "show" }) end
+function M.registerArgv(): ({string}) return withBase({ "registration", "new" }) end
 function M.connectArgv(): ({string}) return withBase({ "connect" }) end
 function M.disconnectArgv(): ({string}) return withBase({ "disconnect" }) end
 function M.modeArgv(mode: string): ({string}) return withBase({ "mode", mode }) end

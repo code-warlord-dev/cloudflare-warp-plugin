@@ -46,7 +46,8 @@
     "command-failed": "Команда warp-cli завершилась с ошибкой",
     "timeout": "Команда warp-cli превысила таймаут",
     "decode-failed": "Не удалось разобрать вывод warp-cli",
-    "mode-locked": "Режим заблокирован политикой"
+    "mode-locked": "Режим заблокирован политикой",
+    "register-pending": "Регистрация ждёт завершения входа в браузере"
   },
   "status": {
     "unavailable": "Недоступен",
@@ -88,7 +89,58 @@
   },
   "panel": {
     "title": "Cloudflare WARP",
-    "placeholder": "Элементы управления WARP появятся здесь в следующем обновлении.",
-    "version": "Версия {version}"
+    "version": "warp-cli {version}",
+    "updated": "Обновлено",
+    "section": {
+      "mode": "Режим",
+      "families": "Families",
+      "protocol": "Протокол",
+      "identity": "Сетевая идентичность"
+    },
+    "mode": {
+      "locked": "Режим заблокирован политикой"
+    },
+    "families": {
+      "unknown": "Текущее значение Families неизвестно"
+    },
+    "protocol": {
+      "unknown": "Неизвестно"
+    },
+    "action": {
+      "copy_ip": "Скопировать IP",
+      "register": "Зарегистрировать",
+      "settings": "Настройки",
+      "refresh": "Обновить",
+      "close": "Закрыть"
+    },
+    "trace": {
+      "none": "Трассировка не выполнялась",
+      "warp": {
+        "on": "WARP включён",
+        "plus": "WARP+",
+        "off": "WARP выключен"
+      }
+    },
+    "identity": {
+      "ip": "IP",
+      "loc": "Локация",
+      "colo": "Edge",
+      "warp": "WARP",
+      "time": "Трассировка"
+    }
+  },
+  "mode": {
+    "warp": "WARP",
+    "doh": "DNS over HTTPS",
+    "warp+doh": "WARP + DNS over HTTPS",
+    "dot": "DNS over TLS",
+    "warp+dot": "WARP + DNS over TLS",
+    "proxy": "Прокси",
+    "tunnel_only": "Только туннель"
+  },
+  "families": {
+    "off": "Выкл",
+    "malware": "Вредоносные",
+    "full": "Все угрозы"
   }
 }

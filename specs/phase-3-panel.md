@@ -43,12 +43,15 @@ open_near_click = true
 
 | Действие UI | Запись в `warp.command` |
 |-------------|--------------------------|
-| Connect / Disconnect / Toggle | `{ seq, action = "toggle"\|"connect"\|"disconnect", source = "panel" }` |
 | Mode select | `{ seq, action = "set-mode", mode = <value>, source = "panel" }` |
 | Families buttons | `{ seq, action = "set-families", families = <value>, source = "panel" }` |
 | Protocol select | `{ seq, action = "set-protocol", protocol = <value>, source = "panel" }` |
 | Refresh | `{ seq, action = "refresh", source = "panel" }` |
 | Register | `{ seq, action = "register", source = "panel" }` |
+
+> **Решение orchestrator (2026-10-20):** `toggle`/`connect`/`disconnect` в панельном UI
+> **не выводятся** — переключение из бара и CC (Phase 2), панель фокусируется на
+> конфигурации. Контракт payload сервиса не меняется (actions остаются в dispatch).
 
 `seq = noctalia.nowMs()`. Никаких `warp.cmd`/`warp.cmd_payload`.
 
@@ -65,7 +68,7 @@ ui.column { gap = 12, padding = 14 }
   │    ├─ Protocol: ui.select (2 значения)
   │    └─ identity: ip / loc / colo / warp + время trace
   ├─ actions: Copy IP | Register | Settings
-  └─ footer: cliVersion
+  └─ footer: cliVersion + подсказка `warp-cli` (не версия плагина)
 ```
 
 ### Mode
@@ -121,7 +124,7 @@ ui.row { gap = 6 } {
 | Copy IP | `trace.ip ~= ""` | `noctalia.copyToClipboard(trace.ip, "text/plain")` |
 | Register | `registered == false` | `warp.command.action = "register"` |
 | Settings | всегда | `noctalia.openSettings()` (нужен `plugin_api ≥ 15`) |
-| Refresh | всегда | `warp.command.action = "refresh"` |
+| Refresh | всегда, кроме `busy` | `warp.command.action = "refresh"` |
 
 ### Состояния
 
@@ -216,7 +219,7 @@ end)
 
 **D. Действия (с восстановлением baseline)**
 
-- [ ] Connect/Disconnect из панели переключает WARP; виджет синхронен.
+- [ ] Connect/Disconnect (IPC `…:service all connect/disconnect` или клик по виджету) переключает WARP; панель и виджет синхронны в пределах poll-интервала. (В панельном UI кнопки Connect/Disconnect не выводятся — решение orchestrator 2026-10-20, см. State/IPC.)
 - [ ] Смена mode на `doh` → `settings list` показывает `operation_mode = "doh"`; вернуть baseline.
 - [ ] Смена protocol → `settings list` отражает значение; вернуть baseline.
 - [ ] Copy IP кладёт в буфер ровно `trace.ip` (проверить `noctalia msg clipboard-text`).

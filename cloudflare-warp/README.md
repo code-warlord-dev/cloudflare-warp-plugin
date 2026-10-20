@@ -2,11 +2,12 @@
 
 Control Cloudflare WARP from the Noctalia bar, Control Center and a dedicated panel.
 
-> **Status: Phase 2 — service, bar widget and shortcut are live.** The service
-> is the single source of truth for WARP state: it polls `warp-cli`, publishes
-> one `warp.status` table and executes whitelisted mutations from IPC and the
-> `warp.command` channel. The bar widget and Control Center shortcut render
-> live state and toggle WARP; the panel still renders a placeholder (Phase 3).
+> **Status: Phase 3 — service, bar widget, shortcut and panel are live.** The
+> service is the single source of truth for WARP state: it polls `warp-cli`,
+> publishes one `warp.status` table and executes whitelisted mutations from
+> IPC and the `warp.command` channel. The bar widget and Control Center
+> shortcut render live state and toggle WARP; the panel exposes the full
+> control surface (mode, families, protocol, identity, registration).
 
 ## Dependency
 
@@ -49,7 +50,7 @@ noctalia msg plugins source remove warpdev
 | `service` | service | Headless owner of WARP state: polls `warp-cli`, publishes `warp.status`, consumes `warp.command` and IPC. |
 | `widget` | bar widget | Phase status SVG icon, short status text and tooltip; toggles WARP on click. |
 | `shortcut` | Control Center | Live tile synced to `warp.status`; toggles WARP on click, refreshes on right click. |
-| `panel` | floating panel | Header, placeholder and version. Phase 3 adds controls. |
+| `panel` | floating panel | Full control surface: status card, mode, families, protocol, identity, registration actions. |
 
 ## Interactions
 
@@ -63,6 +64,45 @@ disabled while `warp-cli` is unavailable. The bar shows per-phase SVG icons;
 the Control Center tile uses Tabler glyphs (`cloud-lock` / `cloud-off`)
 because `shortcut.setIcon` accepts glyph names only — SVG icons are used in
 the bar.
+
+## Panel
+
+The floating panel (380×460) opens with a right click on the bar widget or
+via `noctalia msg panel-toggle code-warlord/cloudflare-warp:panel`. Layout,
+top to bottom:
+
+- **Header** — status glyph, title, current phase, Refresh and Close buttons;
+- **Status card** — phase, last update time and the live error line, if any;
+- **Mode** — select with the seven operation modes; disabled while a policy
+  locks the mode or a command is in flight;
+- **Families** — three segmented buttons: Off / Malware / Full;
+- **Protocol** — WireGuard / MASQUE select;
+- **Identity** — egress IP, location, edge, WARP flag and trace time;
+- **Actions** — Copy IP, Register (only while unregistered) and Settings;
+- **Footer** — the installed `warp-cli` version.
+
+Every panel action is written to the `warp.command` state channel and
+executed by the service; the panel never runs CLI calls or touches the
+network itself.
+
+### Families limitation
+
+`warp-cli dns families` is write-only: the client exposes no getter, so the
+plugin cannot read the current value. On every service start Families shows
+as *unknown* with **no button highlighted**. A selection applies immediately
+and can only be set, never reverted from the plugin — there is no way back to
+the previous value, and after a restart the plugin again shows *unknown* even
+though the client keeps the last applied setting.
+
+### Warnings
+
+- Changing the **protocol** restarts the WARP tunnel and briefly drops
+  connectivity; the plugin does not block the change.
+- **Register** runs the interactive `warp-cli registration new`: it waits up
+  to 30 seconds for the browser sign-in. A timeout is reported as a
+  "registration still waiting for the sign-in" notification, **not** as an
+  error; once the sign-in completes, the next poll marks the client as
+  registered.
 
 ## IPC
 
@@ -78,14 +118,16 @@ noctalia msg plugin code-warlord/cloudflare-warp:service all toggle
 # Explicit connect / disconnect
 noctalia msg plugin code-warlord/cloudflare-warp:service all connect
 noctalia msg plugin code-warlord/cloudflare-warp:service all disconnect
+# Interactive registration (waits for the browser sign-in, up to 30s)
+noctalia msg plugin code-warlord/cloudflare-warp:service all register
 # Mutations (payload is always a string; missing argument arrives as "")
 noctalia msg plugin code-warlord/cloudflare-warp:service all set-mode warp+doh
 noctalia msg plugin code-warlord/cloudflare-warp:service all set-families malware
 noctalia msg plugin code-warlord/cloudflare-warp:service all set-protocol MASQUE
 ```
 
-IPC events: `toggle`, `connect`, `disconnect`, `refresh`, `set-mode`, `set-families`,
-`set-protocol`. `register` arrives in Phase 3.
+IPC events: `toggle`, `connect`, `disconnect`, `refresh`, `register`, `set-mode`,
+`set-families`, `set-protocol`.
 
 Valid mode values: `warp`, `doh`, `warp+doh`, `dot`, `warp+dot`, `proxy`, `tunnel_only`.
 Valid families values: `off`, `malware`, `full`. Valid protocol values: `wireguard`,

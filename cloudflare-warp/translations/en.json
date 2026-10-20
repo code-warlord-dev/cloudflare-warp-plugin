@@ -46,7 +46,8 @@
     "command-failed": "warp-cli command failed",
     "timeout": "warp-cli command timed out",
     "decode-failed": "could not parse warp-cli output",
-    "mode-locked": "Mode is locked by policy"
+    "mode-locked": "Mode is locked by policy",
+    "register-pending": "Registration is waiting for the browser sign-in to finish"
   },
   "status": {
     "unavailable": "Unavailable",
@@ -88,7 +89,58 @@
   },
   "panel": {
     "title": "Cloudflare WARP",
-    "placeholder": "WARP controls will appear here in a later update.",
-    "version": "Version {version}"
+    "version": "warp-cli {version}",
+    "updated": "Updated",
+    "section": {
+      "mode": "Mode",
+      "families": "Families",
+      "protocol": "Protocol",
+      "identity": "Network identity"
+    },
+    "mode": {
+      "locked": "Mode is locked by a policy"
+    },
+    "families": {
+      "unknown": "The current Families value is unknown"
+    },
+    "protocol": {
+      "unknown": "Unknown"
+    },
+    "action": {
+      "copy_ip": "Copy IP",
+      "register": "Register",
+      "settings": "Settings",
+      "refresh": "Refresh",
+      "close": "Close"
+    },
+    "trace": {
+      "none": "No trace yet",
+      "warp": {
+        "on": "WARP on",
+        "plus": "WARP+",
+        "off": "WARP off"
+      }
+    },
+    "identity": {
+      "ip": "IP",
+      "loc": "Location",
+      "colo": "Edge",
+      "warp": "WARP",
+      "time": "Traced"
+    }
+  },
+  "mode": {
+    "warp": "WARP",
+    "doh": "DNS over HTTPS",
+    "warp+doh": "WARP + DNS over HTTPS",
+    "dot": "DNS over TLS",
+    "warp+dot": "WARP + DNS over TLS",
+    "proxy": "Proxy",
+    "tunnel_only": "Tunnel only"
+  },
+  "families": {
+    "off": "Off",
+    "malware": "Malware",
+    "full": "Full"
   }
 }

@@ -541,6 +541,56 @@ local function doRefresh()
   refreshTrace(true)
 end
 
+local function doRegister()
+  if actionInFlight then
+    noctalia.log("cloudflare-warp: warn action in flight, ignoring register")
+    return
+  end
+  if not noctalia.commandExists("warp-cli") then
+    publish({
+      phase = "unavailable",
+      available = false,
+      daemonOk = false,
+      errorCode = "cli-missing",
+      message = noctalia.tr("error.cli-missing"),
+    })
+    return
+  end
+  actionInFlight = true
+  publish({ busy = true, errorCode = "", message = "" })
+  local ok = Commands.run(Commands.registerArgv(), function(result)
+    actionInFlight = false
+    if result.timedOut then
+      -- registration new is interactive: it prints a URL and waits for the
+      -- browser sign-in. The timeout only cuts our wait, the client may still
+      -- complete the flow, so this is not an error - the regular poll picks
+      -- up registered = true once the user finishes.
+      publish({ busy = false })
+      noctalia.notifyError(
+        noctalia.tr("notify.error.title"),
+        noctalia.tr("error.register-pending")
+      )
+      return
+    end
+    if result.exitCode ~= 0 then
+      handleMutationResult(result)
+      return
+    end
+    publish({ busy = false })
+    refreshRegistration()
+    refreshStatus()
+  end, 30000)
+  if not ok then
+    actionInFlight = false
+    publish({
+      busy = false,
+      phase = "error",
+      errorCode = "command-failed",
+      message = noctalia.tr("error.command-failed"),
+    })
+  end
+end
+
 local function dispatch(action, fields, source)
   fields = type(fields) == "table" and fields or {}
   source = tostring(source or "")
@@ -548,7 +598,8 @@ local function dispatch(action, fields, source)
   local payload = ""
   local valid = false
 
-  if action == "toggle" or action == "connect" or action == "disconnect" or action == "refresh" then
+  if action == "toggle" or action == "connect" or action == "disconnect"
+      or action == "refresh" or action == "register" then
     valid = true
   elseif action == "set-mode" then
     payload = tostring(fields.mode or "")
@@ -577,6 +628,8 @@ local function dispatch(action, fields, source)
     doDisconnect()
   elseif action == "refresh" then
     doRefresh()
+  elseif action == "register" then
+    doRegister()
   elseif action == "set-mode" then
     doSetMode(payload)
   elseif action == "set-families" then
