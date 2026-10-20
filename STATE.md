@@ -75,7 +75,7 @@
 | K-07 | На `5.3.0-1-dirty` `plugins disable` не вызывает Luau `onExit`; acceptance под это поправлен | known limit | docs |
 | K-08 | `cdn-cgi/trace` через `noctalia.http` падает бёрстами (`curl=28`, 30s-таймаут, опций нет) — обработано circuit breaker'ом; причина на уровне хоста/WARP-туннеля | known limit | Phase 4 / внешнее |
 | K-09 | `warp.command` (state-канал) не имеет CLI-пути записи — в QA проверен только IPC; оба пути сходятся в `dispatch` | minor | qa / Phase 3 |
-| K-10 | В рабочем каталоге владельца `~/DEV/cloudflare-warp-plugin` (main) лежат незакоммиченные параллельные правки Phase 2 (другая вариация: setGlyphColor, свои решения в SPEC/spec/STATE) — сверить с PR #3 и решить: отбросить или переупаковать в docs-decision | major | owner / orchestrator |
+| K-10 | Параллельная вариация Phase 2 из `~/DEV` (другой fallback с setGlyphColor, решения в SPEC/spec/STATE) перемещена в `git stash@{0}` (main) + бэкап `/tmp/k10-parallel-backup.patch` и `/tmp/k10-icons-backup.luau` перед rebase на PR #3 — сверить и решить: отбросить или переупаковать в docs-decision | major | owner / orchestrator |
 
 ---
 
