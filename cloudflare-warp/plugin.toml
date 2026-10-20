@@ -1,6 +1,6 @@
 id           = "code-warlord/cloudflare-warp"
 name         = "Cloudflare WARP"
-version      = "0.2.0"
+version      = "0.3.0"
 plugin_api   = 24
 author       = "code-warlord"
 license      = "MIT"
