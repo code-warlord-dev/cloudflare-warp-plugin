@@ -7,6 +7,16 @@ Versioning follows [SemVer](https://semver.org/) — see [VERSIONING.md](./VERSI
 
 ---
 
+## [0.4.2] - 2026-10-20
+
+### Changed
+- Panel side gutters reduced from 30 px to 16 px: the root now cancels the host's fixed
+  14 px horizontal inset, leaving the inner 16 px as the only side padding. Cards,
+  selects and the footer grew from 340 px to 368 px inside the 400 px panel. The banner
+  keeps its full-bleed top treatment and the vertical rhythm is unchanged.
+
+---
+
 ## [0.4.1] - 2026-10-20
 
 ### Added

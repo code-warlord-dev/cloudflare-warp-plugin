@@ -77,9 +77,10 @@ the height is tuned to the tallest regular state and the footer is anchored
 with `flexGrow`. Layout, top to bottom:
 
 - **Banner** — full-bleed 400×96 phase image with a bottom alpha fade; the
-  wrapper cancels the host's 14 px inset with negative padding and the image
-  radius matches the panel. Full colour for connected, colour at 0.65 opacity
-  while connecting/disconnecting, and a dimmed idle image for
+  root cancels the host's 14 px horizontal inset so the only side gutter is
+  16 px (cards are 368 px wide), and the banner wrapper pulls the top inset;
+  the image radius matches the panel. Full colour for connected, colour at
+  0.65 opacity while connecting/disconnecting, and a dimmed idle image for
   disconnected/error/unregistered/unknown;
 - **Header** — cloud glyph, "Cloudflare WARP", Refresh (with a short loader)
   and Close; there is no duplicate close control;

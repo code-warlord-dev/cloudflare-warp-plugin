@@ -1,7 +1,8 @@
 # DESIGN — панель Cloudflare WARP
 
-**Статус:** `0.4.1` (PATCH, Phase 3). Панель переработана во вторую версию и прошла
-fix round владельца; контракт `warp.status` / `warp.command` и IPC не менялись.
+**Статус:** `0.4.2` (PATCH, Phase 3). Панель переработана во вторую версию, прошла
+fix round владельца и получила уменьшенные боковые поля; контракт
+`warp.status` / `warp.command` и IPC не менялись.
 **Источник истины:** [`cloudflare-warp/panel.luau`](../cloudflare-warp/panel.luau),
 [`specs/phase-3-panel-redesign.md`](../specs/phase-3-panel-redesign.md).
 
@@ -29,8 +30,8 @@ fix round владельца; контракт `warp.status` / `warp.command` и
 ## Карта компоновки
 
 ```
-root column (gap=0, padding=0, align=stretch, flexGrow=1)
-├─ banner-wrap column (height=82, padding=-14 со всех сторон)
+root column (gap=0, paddingH=-14, paddingV=0, align=stretch, flexGrow=1)
+├─ banner-wrap column (height=82, paddingV=-14)
 │   └─ ui.image 400×96, fit=cover, radius=12, opacity по фазе × entrance
 ├─ header row (paddingH=16, paddingV=8, gap=8)
 │   ├─ glyph cloud-lock 18, brand-orange
@@ -60,10 +61,12 @@ root column (gap=0, padding=0, align=stretch, flexGrow=1)
 присутствует. Высота 672 подобрана под самый высокий штатный набор, а `flexGrow=1`
 у content-body прижимает footer к низу, когда остаётся запас.
 
-Баннер выходит за поля хоста: wrapper высотой 82 px получает `padding = -14`, поэтому
-изображение 400×96 начинается в точке (0,0) панели и заканчивается ровно на нижней
-границе wrapper. Радиус изображения 12 совпадает с радиусом панели; нижний alpha-fade
-зашит в PNG. Версия `warp-cli` в панели не показывается, дублирующей кнопки закрытия нет.
+Баннер выходит за поля хоста: root отменяет горизонтальный inset хоста
+(`paddingH = -14`), поэтому единственный боковой отступ — внутренние 16 px, а карточки
+занимают 368 px из 400. Wrapper высотой 82 px получает `paddingV = -14`; изображение
+400×96 начинается в точке (0,0) панели и заканчивается ровно на нижней границе wrapper.
+Радиус изображения 12 совпадает с радиусом панели; нижний alpha-fade зашит в PNG.
+Версия `warp-cli` в панели не показывается, дублирующей кнопки закрытия нет.
 
 ## Фазы и акценты
 
@@ -148,6 +151,8 @@ Hero-акцент интерполируется между фазами, поэ
 | Captions, updated, trace | 11 |
 | Footer feedback text | 13 |
 | Glyphs | 18 header, 22 hero, 14 secondary |
+| Side gutters | 16 (root cancels the host's 14 px horizontal inset) |
+| Card / control width | 368 inside the 400 px panel |
 | Header padding | 16 по горизонтали, 8 по вертикали |
 | Content padding | 16 по горизонтали, 6 по вертикали, gap 10 |
 | Hero padding | 16 / 12 |
@@ -191,7 +196,9 @@ Hero-акцент интерполируется между фазами, поэ
   `[plugin_settings] panel_placement` может переопределить placement на лету; на
   dev-машине панель открывается как `attached`.
 - **Padding.** Хост добавляет `Style::panelPadding = 14` со всех сторон. Отрицательный
-  padding не клампится и позволяет баннеру выйти на край панели.
+  padding не клампится: root отменяет горизонтальный inset (`paddingH = -14`), а
+  banner-wrapper — вертикальный сверху (`paddingV = -14`), поэтому баннер выходит на
+  край панели, а боковой отступ равен 16 px.
 - **Scrollbar.** Хост рисует полосу прокрутки всегда, когда присутствует `ui.scroll`,
   даже если контент помещается; поэтому панель от scroll-контейнера отказалась.
 - **Frame ticks.** `panel.setNeedsFrameTick(true)` запрашивает кадры, `onFrameTick`
