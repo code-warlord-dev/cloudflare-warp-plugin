@@ -1,8 +1,9 @@
 # Phase 3 — Panel
 
-> **Visual layer superseded (0.4.1):** актуальная редакция панели — 360×700, banner/hero/
-> segmented Families/identity card/footer — в
-> [phase-3-panel-redesign.md](./phase-3-panel-redesign.md). State/IPC/actions ниже
+> **Visual layer superseded (0.4.1):** актуальная редакция панели — 400×672, без
+> `ui.scroll`, с full-bleed banner, анимациями и Families = Malware default — в
+> [phase-3-panel-redesign.md](./phase-3-panel-redesign.md). Фрагменты ниже (manifest
+> 360×700, scroll, unknown-caption) — **историческая редакция 0.4.0**. State/IPC/actions
 > остаются в силе.
 
 **Target version:** `0.4.0` (MINOR) + `0.4.1` (PATCH redesign)
@@ -98,8 +99,8 @@ ui.row { gap = 6 } {
 }
 ```
 
-- при `families == "unknown"` ни одна кнопка не `selected`, под ними caption
-  `tr("panel.families.unknown")` — панель не утверждает, что знает значение;
+- ~~при `families == "unknown"` ни одна кнопка не `selected` + caption~~ — в 0.4.1
+  заменено: выбранный сегмент есть всегда, неизвестное значение = Malware default;
 - после успешной установки сервис публикует `families = <value>` — кнопка подсвечивается;
 - кнопки disabled при `busy`.
 

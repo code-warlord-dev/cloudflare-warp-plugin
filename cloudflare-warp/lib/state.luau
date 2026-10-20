@@ -31,7 +31,7 @@ function M.defaultStatus()
     errorCode = "",
     message = "",
     mode = "",
-    families = "unknown",
+    families = "malware",
     protocol = "unknown",
     alwaysOn = false,
     switchLocked = false,

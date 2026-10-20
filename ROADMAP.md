@@ -76,13 +76,14 @@
 - [x] Refresh, Register, Copy IP
 - [x] Отображение trace (ip, loc, warp)
 - [x] Open plugin settings
-- [x] Floating, 360×700
+- [x] Floating, 400×672, без scroll-контейнера
 - [x] Panel redesign v2: phase banner, status-first hero + power, Mode/Protocol в две колонки, segmented Families, identity card, Copy IP/Settings footer, honest unknown
+- [x] Owner fix round: full-bleed banner, hero 21 px, Families = Malware default, анимации входа/акцента/progress/refresh/hover, ширина 400
 - [x] Live QA connected/disconnected/connecting + 8 screenshots + `docs/DESIGN-PANEL.md`
 
 **DoD:** из панели можно сменить mode/families/protocol и увидеть IP; визуальные состояния подтверждены live.
 
-**Bump:** `0.4.0` (MINOR) + `0.4.1` (PATCH — redesign v2; state/IPC не менялись)
+**Bump:** `0.4.0` (MINOR) + `0.4.1` (PATCH — redesign v2 + owner fix round; структура state/IPC не менялись)
 
 ---
 

@@ -6,7 +6,8 @@
 **Asset:** `cloudflare-warp/assets/hero-banner.jpeg` (source for the two derived PNGs)
 
 Цель — заменить «админскую форму» на премиальный network control surface:
-статус → действия → детали, один loud-акцент, честные unknown-значения.
+статус → действия → детали, один loud-акцент, честные unknown-значения там, где CLI
+их реально отдаёт, и живой отклик на действия.
 
 ---
 
@@ -40,7 +41,7 @@
 
 ## 2. Assets (banner)
 
-Сделать из `assets/hero-banner.jpeg` два PNG 720×192 (2× для панели 360×96):
+Сделать из `assets/hero-banner.jpeg` два PNG 720×192 (с запасом для панели 400×96):
 
 ```bash
 cd cloudflare-warp/assets
@@ -59,39 +60,43 @@ magick /tmp/hero-idle-base.png /tmp/hero-mask.png -alpha off -compose CopyOpacit
 - Connecting/disconnecting — color asset с `opacity = 0.65`.
 - Исходный JPEG оставить в репозитории (README/соцсети), PNG — UI.
 
-Banner в панели: `ui.image({ path = ..., width = 360, height = 96, fit = "cover",
-opacity = <по фазе> })`. Нижний fade — из PNG; хост обрезает верхние углы сам.
+Banner в панели: wrapper-колонка `height = 82` с `padding = -14` со всех сторон и
+`ui.image({ path = ..., width = 400, height = 96, radius = 12, fit = "cover",
+opacity = <по фазе × entrance> })`. Отрицательный padding компенсирует host-inset
+14 px, поэтому изображение начинается в точке (0,0) панели; нижний fade — из PNG.
 
 ---
 
 ## 3. Panel layout
 
-Manifest: `width = 360`, `height = 700`, `placement = "floating"`, `position = "auto"`,
-`open_near_click = true`. Высота фиксированная (host-owned), контент — в `ui.scroll`.
+Manifest: `width = 400`, `height = 672`, `placement = "floating"`, `position = "auto"`,
+`open_near_click = true`. Высота фиксированная (host-owned); `ui.scroll` **не
+используется**, потому что хост всегда рисует его scrollbar.
 
-> Решения после live-прогона: высота 700 вместо 680 (при 680 обрезалась identity card),
-> version caption убран (не входит в бриф, экономит место), power — `md` вместо `lg`
-> (38 px достаточно для главного действия и сохраняет плотность).
+> Решения после live-прогона и fix round владельца: 400×672 вместо 360×700; scroll
+> убран полностью; version caption убран; power — `md`; hero status 21 px, чтобы
+> «Подключение…» помещалось; ошибка свёрнута в subtitle; footer прижат `flexGrow`.
 
 ```
 root column (gap=0, padding=0, align="stretch", flexGrow=1)
-├─ banner ui.image (360×96)
+├─ banner-wrap column (height=82, padding=-14)
+│   └─ ui.image (400×96, radius=12)
 ├─ header row (paddingH=16, paddingV=8, align=center, gap=8)
 │   ├─ glyph cloud-lock 18 brand-orange
 │   ├─ label "Cloudflare WARP" 15 bold
 │   ├─ spacer flexGrow=1
-│   ├─ refresh ui.button glyph=refresh|loader-2, ghost
+│   ├─ refresh ui.button glyph=refresh|loader-2, ghost, pulse во время фидбека
 │   └─ close   ui.button glyph=close, ghost
-├─ ui.scroll (flexGrow=1, gap=10, paddingH=16, paddingV=6)
+├─ content-body column (flexGrow=1, gap=10, paddingH=16, paddingV=6, opacity=entrance)
 │   ├─ hero/status card (radius=16, borderWidth=1, paddingH=16, paddingV=12)
-│   │   ├─ row: status glyph 22 accent + status label 24 bold + spacer + power button
-│   │   ├─ row: subtitle 12 secondary (flexGrow=1) + "Обновлено HH:MM" 11 secondary
-│   │   └─ (error only) message 11 secondary, maxLines=2
+│   │   ├─ row: status glyph 22 accent + status label 21 bold + power button
+│   │   ├─ row: subtitle 12 secondary (flexGrow=1, maxLines=2) + "Обновлено HH:MM" 11
+│   │   └─ connecting/disconnecting: ui.progress 3 px
 │   ├─ controls row (gap=10)
 │   │   ├─ column flexGrow=1: label "Режим" + ui.select
 │   │   └─ column flexGrow=1: label "Протокол" + ui.select
 │   ├─ (optional caption under row) mode locked
-│   ├─ families: label + segmented row + unknown caption
+│   ├─ families: label + segmented row (без caption)
 │   └─ identity card (radius=16, padding=12, gap=5)
 │       ├─ title row "Сетевая идентичность" 13 semibold + glyph world cyan
 │       ├─ separator
@@ -123,9 +128,9 @@ root column (gap=0, padding=0, align="stretch", flexGrow=1)
   - `enabled = available and not busy and phase not in {unregistered, unavailable}`;
   - `onClick` → `State.setCommand("toggle", { source = "panel" })`.
 - `updatedAtMs > 0` → `noctalia.formatTime("%H:%M", floor(ms/1000))`, иначе `—`.
-- Error: под subtitle показать `noctalia.tr("error." .. errorCode)` (danger, 11) и
-  `status.message` (secondary, 11, maxLines=2), если есть. `unavailable` — subtitle
-  `error.cli-missing`, контролы скрыты.
+- Error: свернуть `noctalia.tr("error." .. errorCode)` и `status.message` в subtitle
+  через `" — "` (maxLines=2), чтобы карточка не меняла высоту. `unavailable` —
+  subtitle `error.cli-missing`, контролы скрыты.
 
 ### Controls
 
@@ -149,8 +154,9 @@ root column (gap=0, padding=0, align="stretch", flexGrow=1)
   label `on_surface` semibold. Unselected: **явные** `fill="#00000000"`,
   `border="#00000000"`, `borderWidth=1` (host сохраняет отсутствующие flex-стили —
   иначе после смены значения остаётся stale cyan), label `on_surface_variant`.
-- `families == "unknown"` → ни один не selected + caption с glyph `info-circle` 12 cyan:
-  `panel.families.unknown` («текущее значение неизвестно — CLI не отдаёт его»).
+- Выбранный сегмент есть всегда: `families` вне `off|malware|full` презентуется как
+  `malware` (Cloudflare default). Caption про unknown удалён.
+- Hover: `onHover="familiesHover"` (стабильное имя), fill/border усиливаются с tau 70 ms.
 - Клик → `State.setCommand("set-families", { families = value, source = "panel" })`
   только если значение отличается и не busy.
 
@@ -184,7 +190,12 @@ root column (gap=0, padding=0, align="stretch", flexGrow=1)
 
 - Panel — renderer + command writer: **никаких** `runAsync`, `noctalia.http`, `state.set`
   кроме `warp.command` через `State.setCommand`; `warp.status` не писать.
-- `onOpen` → `isOpen = true`, `applyStatus(state.get)`, render.
+- Анимации: `panel.setNeedsFrameTick(true)` + `onFrameTick(deltaMs)`, шаг 33 ms;
+  entrance 420 ms; акцент tau 140 ms; баннер tau 180 ms; progress 1600 ms;
+  banner pulse 2200 ms; refresh pulse 650 ms; hover tau 70 ms. Тики выключаются,
+  когда анимаций нет, и при закрытии.
+- `onOpen` → `applyStatus(state.get)` до `isOpen = true`, затем сброс animated state,
+  `entranceT = 0`, frame ticks, render.
 - `state.watch` → обновить `status`, render если open.
 - `onClose` → `isOpen = false`, `panel.setWantsSecondTicks(false)`, сбросить feedback.
 - Все мутирующие callbacks проверяют `busy`, `available`, `registered`; повторный клик
@@ -208,7 +219,6 @@ panel.updated
 panel.mode.unknown
 panel.mode.locked
 panel.protocol.unknown
-panel.families.unknown
 panel.section.mode
 panel.section.protocol
 panel.section.families        // ru: "DNS-фильтрация"
@@ -233,17 +243,20 @@ panel.action.copy_ip|copied|settings|register|refresh|close|connect|disconnect
 - [ ] `grep -Rn "state.set" cloudflare-warp/panel.luau` → только через `State.setCommand`
       (нет прямого `noctalia.state.set`).
 - [ ] en/ru: одинаковый набор ключей; все `panel.*` резолвятся.
-- [ ] `plugin.toml`: 0.4.1, panel 360×700, `plugin_api = 24`.
+- [ ] `plugin.toml`: 0.4.1, panel 400×672, `plugin_api = 24`.
 - [ ] Assets: `hero-banner-color.png`, `hero-banner-idle.png` 720×192, alpha у нижнего края.
 
 **Visual (live, 5.3.0)**
 - [ ] Connected: баннер яркий, hero green, статус читается первым, «Обновлено» видно.
 - [ ] Disconnected: баннер приглушён, hero orange, контролы активны, power primary.
 - [ ] Connecting: баннер 0.65, hero cyan, `loader-2` в header и hero, контролы dim.
-- [ ] Families selected — cyan низкой интенсивности; unknown — без выбора + caption.
+- [ ] Families selected — cyan низкой интенсивности; неизвестное значение показывает Malware.
+- [ ] Banner выходит на край панели без боковых полей; нижний fade виден.
 - [ ] IP-строка не ломает сетку на длинном IPv6; copy кладёт полный IP.
 - [ ] Все hit-target ≥ 32 px; selects/segments ≥ 38 px.
-- [ ] Нет обрезанного контента при 360×700; при переполнении работает scroll.
+- [ ] Нет scrollbar и обрезанного контента при 400×672 во всех штатных состояниях.
+- [ ] Анимации: entrance, смена акцента/баннера, progress и banner pulse в connecting,
+      refresh pulse, hover сегментов; в idle frame ticks выключены.
 - [ ] Скриншоты: connected / disconnected / connecting + close-up hero + close-up families.
 
 **Runtime**
@@ -266,9 +279,11 @@ panel.action.copy_ip|copied|settings|register|refresh|close|connect|disconnect
 
 ## 7. Constraints
 
-- Не трогать `service.luau`, `commands.luau`, `widget.luau`, `shortcut.luau` (register уже есть).
+- `service.luau` меняется только bootstrap-публикацией `families = "malware"`;
+  `state.luau` — только дефолт `families`. `commands.luau`, `widget.luau`,
+  `shortcut.luau` не трогать (register уже есть).
 - Не добавлять debug/preview-код в поставляемый `panel.luau`; скриншоты других состояний —
-  временная локальная правка `applyStatus`, откатить перед коммитом.
+  временные фикстуры, полностью откатить перед коммитом.
 - `noctalia plugins lint` — единственный локальный гейт; runtime-лог — второй.
 - Существующий источник `warpqa` (worktree 0.4.0) может перехватывать загрузку; после
   bump 0.4.1 проверить `noctalia msg plugins list | grep warp` и при необходимости

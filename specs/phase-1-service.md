@@ -1,5 +1,8 @@
 # Phase 1 — Service Core
 
+> **Историческая редакция.** В 0.4.1 дефолт `families` изменён с `unknown` на
+> `malware` (Cloudflare default); актуальный контракт — [../docs/SPEC.md](../docs/SPEC.md) §3.3.
+
 **Target version:** `0.2.0` (MINOR)
 **Goal:** сервис — единственный источник правды о WARP: поллит `warp-cli` через argv,
 публикует одну таблицу `warp.status`, принимает `warp.command` и IPC, выполняет мутации.

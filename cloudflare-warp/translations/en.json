@@ -100,9 +100,6 @@
       "unknown": "Unknown",
       "locked": "Mode is locked by a policy"
     },
-    "families": {
-      "unknown": "The current value is unknown — the CLI does not report it"
-    },
     "protocol": {
       "unknown": "Unknown"
     },

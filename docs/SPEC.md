@@ -69,7 +69,7 @@ argv-форма `runAsync` (без shell). Телеметрия туннеля (
   errorCode = "",
   message = "",
   mode = "warp",
-  families = "unknown",
+  families = "malware",
   protocol = "masque",
   alwaysOn = true,
   switchLocked = false,
@@ -93,7 +93,7 @@ argv-форма `runAsync` (без shell). Телеметрия туннеля (
 | `errorCode` | string | `""` \| `cli-missing` \| `daemon-down` \| `unregistered` \| `command-failed` \| `timeout` \| `decode-failed` |
 | `message` | string | сырой текст ошибки CLI (English), `""` если всё хорошо |
 | `mode` | string | `warp` \| `doh` \| `warp+doh` \| `dot` \| `warp+dot` \| `proxy` \| `tunnel_only` \| `""` |
-| `families` | string | `off` \| `malware` \| `full` \| `unknown` — знание только текущего runtime (§3.3) |
+| `families` | string | `off` \| `malware` \| `full` \| `unknown` — write-only CLI; дефолт и презентация — `malware` (§3.3) |
 | `protocol` | string | `wireguard` \| `masque` \| `unknown` |
 | `alwaysOn` | bool | `settings.always_on` из `warp-cli settings --json` (корневой объект `settings`) |
 | `switchLocked` | bool | `settings.switch_locked` — блокирует смену mode |
@@ -107,7 +107,7 @@ argv-форма `runAsync` (без shell). Телеметрия туннеля (
 
 - публикуется целиком одной таблицей (никаких плоских `warp.mode` и т.п.);
 - дефолт при старте: `phase = "unknown"`, `available = false`, `registered = false`,
-  `families = "unknown"`, `protocol = "unknown"`, `mode = ""`, `trace.atMs = 0`;
+  `families = "malware"`, `protocol = "unknown"`, `mode = ""`, `trace.atMs = 0`;
 - сервис сравнивает таблицу по «отпечатку» (конкатенация значимых полей) и не пишет,
   если ничего не изменилось;
 - `busy = true` ставится **до** запуска мутации, снимается в callback.
@@ -140,11 +140,12 @@ argv-форма `runAsync` (без shell). Телеметрия туннеля (
 `warp-cli dns families` — **write-only**: геттера нет, значение не появляется в
 `settings list` (проверено, см. API-NOTES §4).
 
-- при инициализации сервиса `families` принудительно `unknown`;
+- при инициализации сервиса `families` принудительно `malware` (Cloudflare default);
 - после успешного `dns families <X>` — `X`;
-- после рестарта сервиса — снова `unknown` (state переживает рестарт, поэтому сервис
+- после рестарта сервиса — снова `malware` (state переживает рестарт, поэтому сервис
   перезаписывает поле, а не читает старое);
-- панель не показывает предвыбранный вариант как факт (UI — §8.4).
+- панель всегда показывает один выбранный сегмент: неизвестное значение презентуется
+  как `malware` (UI — §8.4); реальное не-дефолтное значение после рестарта не читается.
 
 ---
 
@@ -400,8 +401,8 @@ entry = "shortcut.luau"
 [[panel]]
 id             = "panel"
 entry          = "panel.luau"
-width          = 360
-height         = 700
+width          = 400
+height         = 672
 placement      = "floating"
 position       = "auto"
 open_near_click = true
@@ -474,19 +475,21 @@ barWidget.setVisible(true)
 
 ```
 ui.column
-  ├─ banner 360×96 (phase asset, bottom alpha fade)
+  ├─ banner-wrap (padding = -14) → image 400×96 (phase asset, bottom alpha fade)
   ├─ header: cloud glyph, title, Refresh, Close
-  ├─ hero: status + subtitle + «Обновлено HH:MM» + power
-  ├─ Mode | Protocol          (два равных столбца)
-  ├─ Families: segmented + caption про unknown
-  ├─ identity card: IP (+copy), loc, colo, WARP, trace time
+  ├─ content-body (flexGrow=1, без ui.scroll)
+  │   ├─ hero: status + subtitle + «Обновлено HH:MM» + power (+ progress в transition)
+  │   ├─ Mode | Protocol          (два равных столбца)
+  │   ├─ Families: segmented, всегда есть выбранный сегмент
+  │   └─ identity card: IP (+copy), loc, colo, WARP, trace time
   └─ footer: Copy IP | Register (если !registered) | Settings
 ```
 
 - Families — **сегменты**, а не `ui.select`: у `select` нет «пустого» выбора, и он визуально
-  соврёт про текущее значение. Сегменты — `ui.column` с onClick на всю ячейку; при `unknown`
-  ни одна не выбрана + caption `tr("panel.families.unknown")`. Unselected обязан передавать
-  явные `fill="#00000000"` / `border="#00000000"`: host сохраняет отсутствующие flex-стили.
+  соврёт про текущее значение. Сегменты — `ui.column` с onClick на всю ячейку; выбранный
+  сегмент есть всегда: неизвестное write-only значение презентуется как `malware`.
+  Unselected обязан передавать явные `fill="#00000000"` / `border="#00000000"`: host
+  сохраняет отсутствующие flex-стили.
 - Mode/Protocol — `ui.select`; `onChange(index)` приходит строкой → `tonumber`.
   Host выбирает option 0 для непустого списка, поэтому unknown = ведущая опция
   `panel.mode.unknown` / `panel.protocol.unknown`, а обработчик вычитает offset.
@@ -499,7 +502,9 @@ ui.column
 - Register: `warp.command.action = "register"`; показывать/включать только при `!registered`,
   заменяет Copy IP в footer.
 - `busy` → дизейбл всех мутирующих контролов + спиннер-глиф; контролы dim.
-- Размер: `width = 360`, `height = 700` (host-owned, задаётся в манифесте).
+- Размер: `width = 400`, `height = 672` (host-owned, задаётся в манифесте; изменения
+  применяются после disable/enable плагина). Scroll-контейнер не используется: хост
+  рисует scrollbar всегда, поэтому высота подобрана под штатные состояния.
 
 ---
 
@@ -545,7 +550,7 @@ cloudflare-warp/
 3. Цвета текста — роли палитры (`primary`, `on_surface_variant`, `error`, `success`).
 4. Клики: ЛК toggle, ПК панель. Это **инверсия** относительно `levi/warp`
    (там ЛК — панель) — зафиксировать в README, чтобы не выглядело багом.
-5. Панель — floating, `position = "auto"`, `open_near_click = true`, 360×700.
+5. Панель — floating, `position = "auto"`, `open_near_click = true`, 400×672, без scroll.
 6. Tooltip всегда информативен и локализован.
 7. Тексты статуса: `connected`, `disconnected`, `connecting`, `disconnecting`,
    `unregistered`, `error`, `unavailable`, `unknown` — все через `tr("status.<phase>")`.
@@ -580,7 +585,8 @@ noctalia msg plugins disable code-warlord/cloudflare-warp
 noctalia msg plugins source remove warpdev
 ```
 
-- `.luau` — hot-reload по сохранению; `plugin.toml` — `noctalia msg config-reload`.
+- `.luau` — hot-reload по сохранению; `plugin.toml` — `noctalia msg config-reload`;
+  изменения panel `width`/`height` на 5.3.0 требуют disable/enable плагина.
 - `plugins lint` возвращает exit 1 при error-level проблемах, но **не** проверяет
   translations, панельные опции и не исполняет код. Зелёный lint ≠ рабочий плагин;
   настоящий гейт — enable + чистый лог.
@@ -593,7 +599,7 @@ noctalia msg plugins source remove warpdev
 | Риск | Митигация |
 |------|-----------|
 | Формат `warp-cli` меняется | JSON-first + текстовый fallback + `unknown` |
-| Нет геттера Families | `unknown` как честное состояние, UI не врёт |
+| Нет геттера Families | write-only: панель показывает default `malware`, значение не читается и не откатывается |
 | Демон не запущен | `daemonOk=false` + `errorCode=daemon-down`, без падения |
 | Клиент не зарегистрирован | `phase=unregistered`, кнопка Register (P3) |
 | `switch_locked` (MDM) | блокировать смену mode + объяснить в UI |

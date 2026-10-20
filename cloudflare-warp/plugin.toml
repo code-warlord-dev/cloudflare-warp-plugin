@@ -77,8 +77,8 @@ entry = "shortcut.luau"
 [[panel]]
 id             = "panel"
 entry          = "panel.luau"
-width          = 360
-height         = 700
+width          = 400
+height         = 672
 placement      = "floating"
 position       = "auto"
 open_near_click = true
