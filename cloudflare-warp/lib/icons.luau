@@ -2,8 +2,9 @@
 -- Cloudflare WARP - shared icon and label mapping for UI entries (Phase 2).
 --
 -- Single source of truth for phase -> SVG path / Tabler glyph / text suffix
--- (SPEC 8.2, phase-spec "Политика иконок"), plus the bar tooltip rows.
--- Shared by widget.luau and shortcut.luau; never writes state.
+-- (SPEC 8.2, phase-spec "Политика иконок"), plus the bar tooltip rows and
+-- the phase color role (SPEC 10.3).
+-- Shared by widget.luau, shortcut.luau and panel.luau; never writes state.
 
 local State = require("./state.luau")
 
@@ -70,6 +71,28 @@ end
 -- glyph: Tabler glyph for a phase (fallback / Control Center).
 function M.glyph(phase: any): string
   return GLYPH[M.normalizePhase(phase)]
+end
+
+-- statusGlyph: detail-panel header glyph - the phase glyph, with a busy
+-- override so an in-flight mutation reads as activity (Phase 3).
+function M.statusGlyph(phase: any, busy: any): string
+  if busy == true then
+    return "loader-2"
+  end
+  return M.glyph(phase)
+end
+
+-- phaseColor: palette role for phase-colored text (SPEC 10.3): connected
+-- reads as success, error/unavailable as error, everything else as primary.
+function M.phaseColor(phase: any): string
+  local normalized = M.normalizePhase(phase)
+  if normalized == "connected" then
+    return "success"
+  end
+  if normalized == "error" or normalized == "unavailable" then
+    return "error"
+  end
+  return "primary"
 end
 
 -- textKey: translation suffix for a phase ("on", "connecting", ...).
