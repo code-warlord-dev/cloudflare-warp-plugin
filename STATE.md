@@ -10,13 +10,13 @@
 
 | Поле | Значение |
 |------|----------|
-| **Plugin version** | `0.2.0` (tag `v0.2.0`) |
-| **Roadmap phase** | Phase 1 — Service Core **done**; следующая Phase 2 — Widget + Shortcut |
+| **Plugin version** | `0.3.0` (tag `v0.3.0`) |
+| **Roadmap phase** | Phase 2 — Widget + Shortcut **done**; следующая Phase 3 — Panel |
 | **Branch** | `main` |
 | **Remote** | https://github.com/code-warlord-dev/cloudflare-warp-plugin |
-| **Last merge** | `f73fe8a` Merge PR #2 — Phase 1 service core |
+| **Last merge** | `87b1313` Merge PR #3 — Phase 2 widget + shortcut |
 | **Blockers** | нет |
-| **Next action** | implementer: Phase 2 widget + shortcut по `specs/phase-2-widget.md` (target `0.3.0`; live-тест `barWidget.setImage` со SVG = K-02) |
+| **Next action** | implementer: Phase 3 panel по `specs/phase-3-panel.md` (target `0.4.0`); ручной visual sign-off SVG на баре (K-02) за владельцем |
 
 ---
 
@@ -32,7 +32,9 @@
 | implementer | Phase 1 Service Core (P1-T1) + fix round 2 | done | merged PR #2 |
 | reviewer | Phase 1 review (full + fix round) | done | APPROVE ×2 |
 | qa | Phase 1 live run + fix re-test | done | FAIL → fixes → PASS (baseline восстановлен) |
-| implementer | Phase 2 Widget + Shortcut (P2-T1) | next | target `0.3.0` |
+| implementer | Phase 2 Widget + Shortcut (P2-T1) + fix round (State.setCommand, brand-key) | done | merged PR #3, `7653858` |
+| reviewer | Phase 2 review | done | APPROVE (1 minor → fix round, 5 nit) |
+| qa | Phase 2 live run на 5.3.0 | done | PASS (hot-reload, disable/enable, K-02 fallback, живые клики владельца; GUI-пункты — manual sign-off) |
 
 ---
 
@@ -51,6 +53,12 @@
 - [x] Phase 1: сервис — polling argv-only, `warp.status`/`warp.command`, IPC dispatch, мутации, trace, уведомления
 - [x] Phase 1: reviewer APPROVE ×2, QA полный прогон с реальными мутациями + re-test, фикс-раунд 2
 - [x] Phase 1: PR #2 merged, tag `v0.2.0`
+- [x] Phase 2: widget (SVG setImage, текст, tooltip, ЛК toggle / ПК панель) + CC shortcut (label/active/enabled, ЛК toggle / ПК refresh)
+- [x] Phase 2: `lib/icons.luau` — единственный маппинг phase → SVG/glyph/text + tooltipRows + normalizePhase
+- [x] Phase 2: команды через `State.setCommand` (seq=nowMs), UI-энтри без runAsync/http/file reads
+- [x] Phase 2: reviewer APPROVE + fix round (setCommand, brand-key, комментарий fileExists)
+- [x] Phase 2: QA live PASS — hot-reload, disable/enable, K-02 fallback (одна WRN + glyph), живые клики владельца (source=widget)
+- [x] Phase 2: PR #3 merged, tag `v0.3.0`
 
 ---
 
@@ -59,14 +67,15 @@
 | ID | Description | Severity | Owner |
 |----|-------------|----------|-------|
 | K-01 | Author handle: локально есть плагины `code_warlord/*`, выбран `code-warlord`; сверить до Phase 5 | minor | orchestrator |
-| K-02 | `barWidget.setImage` с SVG не используется ни одним shipped-плагином; нужен live-тест + glyph-fallback | major | qa / Phase 2 |
+| K-02 | `setImage` со SVG: fallback + одна WRN проверены live (PR #3); **ручной** visual sign-off «SVG виден на баре глазами» за владельцем | minor | owner |
 | K-03 | `warp-cli dns families` write-only, геттера нет → `families = unknown` до установки в сессии | known limit | implementer |
 | K-04 | Нет локального Luau-тулчейна (`luau`, `luau-analyze`, `selene`) — гейт только lint + runtime-лог | minor | Phase 4 |
 | K-05 | Включены конкурирующие `levi/warp` и `code_warlord/warp_toggle` — QA не трогает, фильтрует логи | minor | qa |
-| K-06 | `connecting` и `warn` иконки почти неразличимы на 16 px | minor | Phase 2 (design) |
+| K-06 | `connecting` и `warn` иконки почти неразличимы на 16 px | minor | Phase 3 (design) |
 | K-07 | На `5.3.0-1-dirty` `plugins disable` не вызывает Luau `onExit`; acceptance под это поправлен | known limit | docs |
 | K-08 | `cdn-cgi/trace` через `noctalia.http` падает бёрстами (`curl=28`, 30s-таймаут, опций нет) — обработано circuit breaker'ом; причина на уровне хоста/WARP-туннеля | known limit | Phase 4 / внешнее |
 | K-09 | `warp.command` (state-канал) не имеет CLI-пути записи — в QA проверен только IPC; оба пути сходятся в `dispatch` | minor | qa / Phase 3 |
+| K-10 | В рабочем каталоге владельца `~/DEV/cloudflare-warp-plugin` (main) лежат незакоммиченные параллельные правки Phase 2 (другая вариация: setGlyphColor, свои решения в SPEC/spec/STATE) — сверить с PR #3 и решить: отбросить или переупаковать в docs-decision | major | owner / orchestrator |
 
 ---
 
@@ -89,6 +98,7 @@
 | 2026-10-20 | Уведомления по стабильной фазе (`lastStablePhase`, без `connecting`/`disconnecting`) | QA: toggle не давал пары connected→disconnected |
 | 2026-10-20 | Trace circuit breaker: пауза после 3 неудач, backoff `interval×10×2^level` (max 160×), обход через `refresh` | `noctalia.http` без опции таймаута, лог спамился WRN/мин |
 | 2026-10-20 | Whitelist протокола — только ASCII (`MÁSQUE` отклоняется) | спека исправлена под эмпирику, `string.lower` ASCII-only |
+| 2026-10-20 | Bar-иконки: цвета свои, тонировка хостом (`currentColor`) **не** используется; `*.mono.svg` — запасной набор | тонировка хостом не проверена (K-02), мульти-цветные stroke читаемы на обеих темах; моно без тонировки рисовался бы чёрным |
 
 ---
 
