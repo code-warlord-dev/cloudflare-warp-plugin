@@ -73,14 +73,15 @@ grep -n "cloudflare-warp" ~/.cache/noctalia/noctalia.log | tail -20
 | 7 | set-mode | `settings list` показывает новый `operation_mode` |
 | 8 | set-protocol | `settings list` показывает новый `warp_tunnel_protocol` |
 | 9 | invalid payload | warn в логе, CLI не вызван, state не изменён |
-| 10 | families | при старте `unknown`; invalid-value не меняет CLI |
+| 10 | families | при старте `malware`; сегмент всегда выбран; invalid-value не меняет CLI |
 | 11 | widget | SVG + текст, ЛК toggle, ПК панель |
 | 12 | shortcut | checked = connected, busy → disabled |
-| 13 | panel | 380×460, mode/protocol/ip, Copy IP, Settings |
-| 14 | poll_interval | смена настройки → heartbeat реже, без рестарта shell |
-| 15 | disable/enable | onExit reason=disable, повторный enable чистый |
-| 16 | hot-reload | правка `.luau` → entry перезагружается, сервис жив |
-| 17 | «нет warp-cli» | статически: `commandExists` до `runAsync`; runtime — not-run, если нет чистой машины |
+| 13 | panel | 400×672, без scrollbar, full-bleed banner, hero 21, mode/protocol, Families = malware, identity, Copy IP/Settings |
+| 14 | panel animations | entrance, смена акцента/баннера, progress в connecting, hover; в idle frame ticks выключены |
+| 15 | poll_interval | смена настройки → heartbeat реже, без рестарта shell |
+| 16 | disable/enable | лог `stopping service … (no longer active)`; на 5.3.0 `onExit` не вызывается; повторный enable чистый; смена width/height применяется только так |
+| 17 | hot-reload | правка `.luau` → entry перезагружается, сервис жив |
+| 18 | «нет warp-cli» | статически: `commandExists` до `runAsync`; runtime — not-run, если нет чистой машины |
 
 ## Ограничения окружения
 

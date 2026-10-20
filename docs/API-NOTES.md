@@ -168,11 +168,12 @@ error: the following required arguments were not provided:
 
 Следствие для state:
 
-- `families = "unknown"` при старте сервиса;
+- `families = "malware"` при старте сервиса (Cloudflare default, решение владельца 0.4.1);
 - после успешного `dns families <X>` в **текущем** runtime — `families = X`;
-- после рестарта сервиса снова `unknown` (state-канал переживает рестарт, поэтому сервис
-  обязан перезаписать поле на `unknown` при инициализации, а не подхватывать старое);
-- панель не должна показывать предвыбранное значение Families как факт.
+- после рестарта сервиса снова `malware` (state-канал переживает рестарт, поэтому сервис
+  обязан перезаписать поле при инициализации, а не подхватывать старое);
+- панель всегда показывает выбранный сегмент; реальное не-дефолтное значение после
+  рестарта не читается — это осознанная презентация, а не факт из CLI.
 
 ---
 
@@ -299,7 +300,39 @@ noctalia msg plugins source remove warpdev
 `ok (exporting in background)`.
 
 Горячая перезагрузка: правки `.luau` подхватываются file-watcher’ом; изменения
-`plugin.toml` — только через `noctalia msg config-reload`.
+`plugin.toml` — только через `noctalia msg config-reload`. **Panel `width`/`height`
+через `config-reload` не применились** на 5.3.0: нужен disable/enable плагина
+(после этого панель открылась в новых размерах).
+
+### Проверенные повадки UI-хоста (select / flex / scroll / panel)
+
+Сверено с исходниками Noctalia 5.3.0 (`src/ui/controls/select.cpp`,
+`src/ui/ui_tree_reconciler.cpp`, `src/ui/controls/scroll_view.cpp`); на живом хосте
+подтверждено в Phase 3.
+
+- **`ui.select` не умеет placeholder через `selectedIndex = nil`.** `setOptions` на непустом
+  списке автоматически выбирает индекс 0, а реконсилер применяет `selectedIndex` только при
+  смене scalar; смена options сбрасывает scalar. Поэтому «честное неизвестно» делается
+  ведущей переведённой опцией `panel.*.unknown`, а обработчик вычитает offset,
+  зафиксированный в замыкании на момент рендера.
+- **Отсутствующие `fill`/`border` у `column`/`row` наследуются от предыдущего рендера**
+  (стираются только у `drop_zone`). Условно прозрачный сегмент обязан явно передавать
+  `#00000000`, иначе после deselect остаётся залитый акцентом фон.
+- **Scrollbar в `ui.scroll` — хозяйский.** `scroll_view` показывает его по своему флагу
+  независимо от высоты контента; декларативного пропа скрытия нет. Видимая полоса при
+  помещающемся контенте — не ошибка layout плагина. Вывод 0.4.1: панель не использует
+  `ui.scroll` вообще.
+- **Размер панели — только манифест.** `width`/`height` принимают положительное число
+  или `"fill"`; auto/content-height и runtime `setSize` отсутствуют. Хост добавляет
+  `Style::panelPadding = 14` со всех сторон и не даёт его отключить.
+- **Отрицательный padding работает.** `Flex::setPadding` присваивает значение напрямую,
+  layout использует отрицательные инсеты; wrapper с `padding = -14` позволяет баннеру
+  выйти на край панели (проверено live 0.4.1).
+- **Frame ticks.** `panel.setNeedsFrameTick(true)` запрашивает кадры; глобальный
+  `onFrameTick(deltaMs)` вызывается, пока флаг включён; кадры коалесцируются, тики
+  прекращаются при закрытии панели. В idle флаг нужно выключать вручную.
+- **Second ticks.** `panel.setWantsSecondTicks(true)` гоняет `update()` раз в секунду;
+  используется только на время copy/refresh-фидбека.
 
 ### Эмпирика `onExit` на сборке `5.3.0-1-dirty` (важно для acceptance)
 
@@ -399,7 +432,7 @@ families, protocol) обязан идти только через argv и тол
 |-------------|-------------|------------|
 | Connect/disconnect | да | да |
 | Mode (7 значений) | да | да |
-| **Families** | нет | да (с честным `unknown`) |
+| **Families** | нет | да (write-only; презентация `malware` default) |
 | **Tunnel protocol** | только чтение (из `tunnel stats`) | чтение + **setter** |
 | **Registration** | нет отдельного состояния | `registered`, `accountType`, `register` |
 | **Egress IP / loc / colo / warp=on\|plus** | нет (показывает endpoint и latency туннеля) | да, через `cdn-cgi/trace` |

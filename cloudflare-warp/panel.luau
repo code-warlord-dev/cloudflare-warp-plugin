@@ -1,10 +1,15 @@
 --!nonstrict
--- Cloudflare WARP - detail panel (Phase 3).
+-- Cloudflare WARP - detail panel (Phase 3, redesign v2).
 --
--- Declarative view of warp.status plus its command writer: every action goes
--- through warp.command via State.setCommand(source = "panel"). This entry
--- never runs CLI calls, never touches the network and never writes
--- warp.status; the tree re-renders on state changes while the panel is open.
+-- Renderer plus command writer: every action goes through warp.command via
+-- State.setCommand(source = "panel"). This entry never runs CLI calls, never
+-- touches the network and never writes warp.status; the tree re-renders on
+-- state changes while the panel is open. The banner assets were derived from
+-- assets/hero-banner.jpeg (connected = color, idle = cooler/dimmer).
+--
+-- The host owns the panel size and adds a fixed 14 px padding around plugin
+-- content, so the banner wrapper uses negative padding to bleed to the edge
+-- and the manifest height is tuned to the tallest regular state (no scroll).
 
 local State = require("./lib/state.luau")
 local Icons = require("./lib/icons.luau")
@@ -13,19 +18,159 @@ local Icons = require("./lib/icons.luau")
 -- lowercase values the service whitelists (SPEC 5.2).
 local MODE_ORDER = { "warp", "doh", "warp+doh", "dot", "warp+dot", "proxy", "tunnel_only" }
 local PROTOCOL_ORDER = { "wireguard", "masque" }
+local FAMILIES_ORDER = { "off", "malware", "full" }
+local FAMILIES_DEFAULT = "malware"
+
+-- Visual tokens (SPEC phase-3 panel redesign section 1).
+local BRAND_ORANGE = "#F6821F"
+local CYAN = "#59D6FF"
+local SUCCESS = "#3BE3A3"
+
+-- Phase presentation: loud accent, banner asset and banner opacity.
+local PHASE_STYLE = {
+  connected = { accent = SUCCESS, banner = "assets/hero-banner-color.png", bannerOpacity = 1.0 },
+  disconnected = { accent = BRAND_ORANGE, banner = "assets/hero-banner-idle.png", bannerOpacity = 1.0 },
+  connecting = { accent = CYAN, banner = "assets/hero-banner-color.png", bannerOpacity = 0.65 },
+  disconnecting = { accent = CYAN, banner = "assets/hero-banner-color.png", bannerOpacity = 0.65 },
+  unregistered = { accent = "#FFB340", banner = "assets/hero-banner-idle.png", bannerOpacity = 0.9 },
+  error = { accent = "#FF5C6C", banner = "assets/hero-banner-idle.png", bannerOpacity = 0.85 },
+  unavailable = { accent = "#FF5C6C", banner = "assets/hero-banner-idle.png", bannerOpacity = 0.85 },
+  unknown = { accent = "#8A93A6", banner = "assets/hero-banner-idle.png", bannerOpacity = 0.85 },
+}
+
+local COPY_FEEDBACK_MS = 1600
+local REFRESH_FEEDBACK_MS = 1500
+local IP_DISPLAY_MAX = 28
+
+-- Geometry shared with plugin.toml: the host wraps content in a scaled
+-- Style::panelPadding on every side, so the banner compensates with negative
+-- padding to reach the panel edges.
+local PANEL_WIDTH = 400
+local HOST_PADDING = 14
+local BANNER_HEIGHT = 96
+local BANNER_WRAP_HEIGHT = BANNER_HEIGHT - HOST_PADDING
+local BANNER_RADIUS = 12
+
+-- Animation timing (milliseconds).
+local FRAME_STEP_MS = 33
+local ENTRANCE_MS = 420
+local ACCENT_TAU_MS = 140
+local BANNER_TAU_MS = 180
+local HOVER_TAU_MS = 70
+local PULSE_PERIOD_MS = 2200
+local PROGRESS_PERIOD_MS = 1600
 
 local status = State.defaultStatus()
 local isOpen = false
+local copiedUntilMs = 0
+local refreshUntilMs = 0
+
+-- Animated presentation state: phase accent, banner opacity, hover easing and
+-- the one-shot entrance progress.
+local accentR, accentG, accentB = 138, 147, 166
+local bannerAlpha = 0.85
+local entranceT = 1
+local hoverCurrent = { off = 0, malware = 0, full = 0 }
+local hoverTarget = { off = 0, malware = 0, full = 0 }
+local frameAccMs = 0
+local frameTicksOn = false
+local progressStartMs = 0
+
+local render -- forward declaration: callbacks below re-render after local actions.
+local wakeAnimation
+
+local function nowMs()
+  return tonumber(noctalia.nowMs()) or 0
+end
+
+local function hexToRgb(hex)
+  return tonumber(string.sub(hex, 2, 3), 16) or 255,
+    tonumber(string.sub(hex, 4, 5), 16) or 255,
+    tonumber(string.sub(hex, 6, 7), 16) or 255
+end
+
+local function clampByte(value)
+  return math.max(0, math.min(255, math.floor(value + 0.5)))
+end
+
+local function rgbHex(r, g, b)
+  return string.format("#%02X%02X%02X", clampByte(r), clampByte(g), clampByte(b))
+end
+
+local function approach(current, target, dtMs, tauMs)
+  if dtMs >= tauMs then
+    return target
+  end
+  return current + (target - current) * (dtMs / tauMs)
+end
+
+local function easeOutCubic(t)
+  local inv = 1 - t
+  return 1 - inv * inv * inv
+end
+
+local function accentHex()
+  return rgbHex(accentR, accentG, accentB)
+end
 
 local function applyStatus(value)
   if type(value) ~= "table" then
     return
   end
-  status = value
-  status.phase = Icons.normalizePhase(status.phase)
+  local prevPhase = status.phase
+  local nextStatus = {}
+  for k, v in pairs(value) do
+    nextStatus[k] = v
+  end
+  nextStatus.phase = Icons.normalizePhase(nextStatus.phase)
+  status = nextStatus
+  if isOpen and status.phase ~= prevPhase then
+    -- Reveal the new banner asset with a short dip instead of a hard cut.
+    bannerAlpha = math.min(bannerAlpha, 0.35)
+    progressStartMs = nowMs()
+    wakeAnimation()
+  end
 end
 
-local render -- forward declaration: callbacks below re-render after local actions.
+local function phaseStyle()
+  return PHASE_STYLE[status.phase] or PHASE_STYLE.unknown
+end
+
+local function isBusy()
+  return status.busy == true
+end
+
+local function isTransitionPhase()
+  local phase = status.phase
+  return phase == "connecting" or phase == "disconnecting"
+end
+
+-- Mutations require a live CLI, an idle service and a registered client.
+local function controlsEnabled()
+  return status.available == true and status.busy ~= true and status.registered ~= false
+end
+
+local function powerEnabled()
+  local phase = status.phase
+  return status.available == true and status.busy ~= true and status.registered ~= false
+    and phase ~= "unregistered" and phase ~= "unavailable"
+end
+
+local function traceIp()
+  local trace = type(status.trace) == "table" and status.trace or {}
+  local ip = trace.ip
+  return type(ip) == "string" and ip or ""
+end
+
+-- The CLI never reports the DNS families value, so an unset/unknown value is
+-- presented as the Cloudflare default instead of an empty segmented control.
+local function effectiveFamilies()
+  local value = status.families
+  if value == "off" or value == "malware" or value == "full" then
+    return value
+  end
+  return FAMILIES_DEFAULT
+end
 
 -- modeLabels: the seven translated mode names in MODE_ORDER order.
 local function modeLabels()
@@ -36,18 +181,17 @@ local function modeLabels()
   return labels
 end
 
--- modeIndex: 0-based selectedIndex; -1 when the mode is unknown.
+-- modeIndex / protocolIndex: 0-based index into the real option list; nil when
+-- the value is unknown.
 local function modeIndex()
   for i, id in ipairs(MODE_ORDER) do
     if id == status.mode then
       return i - 1
     end
   end
-  return -1
+  return nil
 end
 
--- protocolIndex: 0-based selectedIndex; nil (no selection) when unknown so
--- the placeholder shows instead of a made-up protocol.
 local function protocolIndex()
   for i, id in ipairs(PROTOCOL_ORDER) do
     if id == status.protocol then
@@ -57,14 +201,168 @@ local function protocolIndex()
   return nil
 end
 
--- Command callbacks. Guards mirror the busy/lock checks the service enforces
--- so a stray callback can never emit a second command while one is in flight.
-local function onModeChange(index)
+-- The host select always selects option 0 for a non-empty list, so `nil`
+-- cannot display its placeholder. An unknown value gets an explicit leading
+-- placeholder option instead; the change handlers ignore that index.
+local function selectData(labels, index, placeholder)
+  if index ~= nil then
+    return labels, index, 0
+  end
+  local options = { placeholder }
+  for _, label in ipairs(labels) do
+    options[#options + 1] = label
+  end
+  return options, 0, 1
+end
+
+-- Timers: second ticks drive the copy/refresh feedback windows.
+local function syncTicks()
+  panel.setWantsSecondTicks(copiedUntilMs > 0 or refreshUntilMs > 0)
+end
+
+-- Animation helpers ----------------------------------------------------------
+
+local function needsAnimation()
+  if entranceT < 1 then
+    return true
+  end
+  local style = phaseStyle()
+  local tr, tg, tb = hexToRgb(style.accent)
+  if math.abs(accentR - tr) + math.abs(accentG - tg) + math.abs(accentB - tb) > 2 then
+    return true
+  end
+  if math.abs(bannerAlpha - style.bannerOpacity) > 0.004 then
+    return true
+  end
+  if isTransitionPhase() or refreshUntilMs > 0 then
+    return true
+  end
+  for _, id in ipairs(FAMILIES_ORDER) do
+    if math.abs(hoverCurrent[id] - hoverTarget[id]) > 0.01 then
+      return true
+    end
+  end
+  return false
+end
+
+wakeAnimation = function()
+  if not isOpen then
+    return
+  end
+  if not frameTicksOn then
+    frameTicksOn = true
+    panel.setNeedsFrameTick(true)
+  end
+end
+
+local function syncFrameTicks()
+  if isOpen and needsAnimation() then
+    wakeAnimation()
+  elseif frameTicksOn then
+    frameTicksOn = false
+    panel.setNeedsFrameTick(false)
+  end
+end
+
+local function displayedBannerOpacity()
+  local value = bannerAlpha
+  if isTransitionPhase() then
+    value = value + 0.06 * math.sin(nowMs() / PULSE_PERIOD_MS * math.pi * 2)
+  end
+  value = value * easeOutCubic(entranceT)
+  return math.max(0, math.min(1, value))
+end
+
+local function busyProgress()
+  if not isTransitionPhase() then
+    return 0
+  end
+  local elapsed = math.max(0, nowMs() - progressStartMs)
+  local wave = 0.5 - 0.5 * math.cos(elapsed / PROGRESS_PERIOD_MS * math.pi * 2)
+  return 0.12 + 0.88 * wave
+end
+
+local function refreshPulseOpacity()
+  if refreshUntilMs <= 0 then
+    return 1
+  end
+  return 0.55 + 0.45 * math.abs(math.sin(nowMs() / 650 * math.pi))
+end
+
+local function familiesSegmentColors(value)
+  local selected = effectiveFamilies() == value
+  local hover = hoverCurrent[value] or 0
+  local fillAlpha
+  local borderAlpha
+  if selected then
+    fillAlpha = 0x1F + 0x12 * hover
+    borderAlpha = 0x99 + 0x33 * hover
+  else
+    fillAlpha = 0x0A * hover
+    borderAlpha = 0x40 * hover
+  end
+  return CYAN .. string.format("%02X", clampByte(fillAlpha)),
+    CYAN .. string.format("%02X", clampByte(borderAlpha))
+end
+
+-- Named hover callback: a stable name lets the host keep the hover wired
+-- across the re-renders that animate the segment.
+function familiesHover(state, key)
+  local value = string.gsub(tostring(key or ""), "^families%-", "")
+  if hoverTarget[value] == nil then
+    return
+  end
+  local entering = state == "true"
+  for _, id in ipairs(FAMILIES_ORDER) do
+    hoverTarget[id] = (entering and id == value) and 1 or 0
+  end
+  wakeAnimation()
+end
+
+function onFrameTick(deltaMs)
+  if not isOpen then
+    if frameTicksOn then
+      frameTicksOn = false
+      panel.setNeedsFrameTick(false)
+    end
+    return
+  end
+  local delta = tonumber(deltaMs) or FRAME_STEP_MS
+  if delta <= 0 then
+    delta = FRAME_STEP_MS
+  end
+  frameAccMs = frameAccMs + math.min(delta, 120)
+  if frameAccMs < FRAME_STEP_MS then
+    return
+  end
+  local dt = math.min(frameAccMs, 120)
+  frameAccMs = 0
+
+  if entranceT < 1 then
+    entranceT = math.min(1, entranceT + dt / ENTRANCE_MS)
+  end
+  local style = phaseStyle()
+  local tr, tg, tb = hexToRgb(style.accent)
+  accentR = approach(accentR, tr, dt, ACCENT_TAU_MS)
+  accentG = approach(accentG, tg, dt, ACCENT_TAU_MS)
+  accentB = approach(accentB, tb, dt, ACCENT_TAU_MS)
+  bannerAlpha = approach(bannerAlpha, style.bannerOpacity, dt, BANNER_TAU_MS)
+  for _, id in ipairs(FAMILIES_ORDER) do
+    hoverCurrent[id] = approach(hoverCurrent[id], hoverTarget[id], dt, HOVER_TAU_MS)
+  end
+
+  render()
+  syncFrameTicks()
+end
+
+-- Command callbacks. Guards mirror the service checks so a stray callback can
+-- never emit a second command while one is in flight.
+local function onModeChange(index, offset)
   local i = tonumber(index)
-  if status.busy ~= true and status.switchLocked ~= true
-      and status.phase ~= "unregistered"
-      and i ~= nil and i >= 0 and i < #MODE_ORDER then
-    local mode = MODE_ORDER[i + 1]
+  offset = tonumber(offset) or 0
+  if controlsEnabled() and status.switchLocked ~= true
+      and i ~= nil and i >= offset and i - offset < #MODE_ORDER then
+    local mode = MODE_ORDER[i - offset + 1]
     if mode ~= status.mode then
       State.setCommand("set-mode", { mode = mode, source = "panel" })
     end
@@ -73,11 +371,11 @@ local function onModeChange(index)
   render()
 end
 
-local function onProtocolChange(index)
+local function onProtocolChange(index, offset)
   local i = tonumber(index)
-  if status.busy ~= true and status.phase ~= "unregistered"
-      and i ~= nil and i >= 0 and i < #PROTOCOL_ORDER then
-    local protocol = PROTOCOL_ORDER[i + 1]
+  offset = tonumber(offset) or 0
+  if controlsEnabled() and i ~= nil and i >= offset and i - offset < #PROTOCOL_ORDER then
+    local protocol = PROTOCOL_ORDER[i - offset + 1]
     if protocol ~= status.protocol then
       State.setCommand("set-protocol", { protocol = protocol, source = "panel" })
     end
@@ -86,35 +384,52 @@ local function onProtocolChange(index)
 end
 
 local function onFamilies(families)
-  if status.busy == true or status.families == families then
-    render()
-    return
+  if controlsEnabled() and effectiveFamilies() ~= families then
+    State.setCommand("set-families", { families = families, source = "panel" })
   end
-  State.setCommand("set-families", { families = families, source = "panel" })
-  -- Re-render to snap the buttons back to the published value.
   render()
 end
 
-local function onCopyIp()
-  local trace = type(status.trace) == "table" and status.trace or {}
-  if type(trace.ip) == "string" and trace.ip ~= "" then
-    noctalia.copyToClipboard(trace.ip, "text/plain")
+local function onPower()
+  if not powerEnabled() then
+    return
   end
+  State.setCommand("toggle", { source = "panel" })
 end
 
 local function onRegister()
-  if status.busy == true or status.registered == true then
+  if status.available == true and status.registered == false and status.busy ~= true then
+    State.setCommand("register", { source = "panel" })
+  end
+end
+
+local function onCopyIp()
+  local ip = traceIp()
+  if ip == "" then
     return
   end
-  State.setCommand("register", { source = "panel" })
+  local copied = noctalia.copyToClipboard(ip, "text/plain")
+  if copied == false then
+    return
+  end
+  copiedUntilMs = nowMs() + COPY_FEEDBACK_MS
+  syncTicks()
+  render()
+end
+
+local function onRefresh()
+  if isBusy() or refreshUntilMs > 0 then
+    return
+  end
+  refreshUntilMs = nowMs() + REFRESH_FEEDBACK_MS
+  syncTicks()
+  wakeAnimation()
+  State.setCommand("refresh", { source = "panel" })
+  render()
 end
 
 local function onSettings()
   noctalia.openSettings()
-end
-
-local function onRefresh()
-  State.setCommand("refresh", { source = "panel" })
 end
 
 local function onCloseClicked()
@@ -123,35 +438,70 @@ end
 
 -- Tree builders --------------------------------------------------------------
 
-local function sectionLabel(text)
-  return ui.label({ text = text, fontSize = 12, color = "on_surface_variant" })
-end
-
 local function caption(text)
   return ui.label({ text = text, fontSize = 11, color = "on_surface_variant" })
 end
 
--- Header: status glyph (loader while busy), title, phase text, refresh+close.
-local function headerRow()
-  return ui.row({ gap = 8, align = "center", width = "100%" }, {
-    ui.glyph({
-      name = Icons.statusGlyph(status.phase, status.busy),
-      size = 20,
-      color = Icons.phaseColor(status.phase),
+local function sectionLabel(text)
+  return ui.label({ text = text, fontSize = 12, color = "on_surface_variant" })
+end
+
+local function shortIp(ip)
+  if #ip <= IP_DISPLAY_MAX then
+    return ip
+  end
+  return string.sub(ip, 1, 13) .. "…" .. string.sub(ip, -12)
+end
+
+-- Banner: full-bleed phase image. The wrapper sits in the normal content flow,
+-- then negative padding pulls the 400x96 image over the host's 14 px inset;
+-- the PNG carries the bottom alpha fade.
+local function banner()
+  local style = phaseStyle()
+  return ui.column({
+    key = "banner-wrap",
+    height = BANNER_WRAP_HEIGHT,
+    paddingH = -HOST_PADDING,
+    paddingV = -HOST_PADDING,
+  }, {
+    ui.image({
+      key = "banner",
+      path = style.banner,
+      width = PANEL_WIDTH,
+      height = BANNER_HEIGHT,
+      radius = BANNER_RADIUS,
+      fit = "cover",
+      opacity = displayedBannerOpacity(),
     }),
-    ui.label({ text = noctalia.tr("panel.title"), fontSize = 15, fontWeight = "bold" }),
+  })
+end
+
+-- Header: small brand glyph, title, refresh (loader while working) and close.
+local function headerRow()
+  local busy = isBusy()
+  local refreshing = refreshUntilMs > 0
+  return ui.row({
+    width = "100%",
+    gap = 8,
+    align = "center",
+    paddingH = 16,
+    paddingV = 8,
+  }, {
+    ui.glyph({ name = "cloud-lock", size = 18, color = BRAND_ORANGE }),
     ui.label({
-      text = noctalia.tr("status." .. status.phase),
-      fontSize = 12,
-      color = Icons.phaseColor(status.phase),
+      text = noctalia.tr("panel.title"),
+      fontSize = 15,
+      fontWeight = "bold",
+      color = "on_surface",
     }),
     ui.spacer({ flexGrow = 1 }),
     ui.button({
       key = "header-refresh",
-      glyph = "refresh",
+      glyph = (busy or refreshing) and "loader-2" or "refresh",
       variant = "ghost",
+      opacity = refreshPulseOpacity(),
       tooltip = noctalia.tr("panel.action.refresh"),
-      enabled = status.busy ~= true,
+      enabled = not busy and not refreshing,
       onClick = onRefresh,
     }),
     ui.button({
@@ -164,145 +514,308 @@ local function headerRow()
   })
 end
 
--- Status card: phase (colored), last update, and the error line for a live
--- client. The unavailable case renders its own line instead of the controls,
--- so the message is not duplicated here.
-local function statusCard()
+local function powerButton()
+  local phase = status.phase
+  local disconnect = phase == "connected" or phase == "connecting" or phase == "disconnecting"
+  return ui.button({
+    key = "power",
+    glyph = "power",
+    controlSize = "md",
+    glyphSize = 18,
+    variant = disconnect and "outline" or "primary",
+    tooltip = noctalia.tr(if disconnect then "panel.action.disconnect" else "panel.action.connect"),
+    enabled = powerEnabled(),
+    onClick = onPower,
+  })
+end
+
+-- Hero: the one loud accent on the panel; status reads first.
+local function heroCard()
+  local accent = accentHex()
   local updatedAtMs = tonumber(status.updatedAtMs) or 0
   local updated = if updatedAtMs > 0
     then noctalia.formatTime("%H:%M", math.floor(updatedAtMs / 1000))
     else "—"
+  local subtitle = noctalia.tr("panel.hero.subtitle." .. status.phase)
+  local errorCode = type(status.errorCode) == "string" and status.errorCode or ""
+  if status.phase == "unavailable" and errorCode ~= "" then
+    subtitle = noctalia.tr("error." .. errorCode)
+  elseif status.phase == "error" then
+    -- Fold the error into the subtitle row so the card keeps a stable height.
+    local parts = {}
+    if errorCode ~= "" then
+      parts[#parts + 1] = noctalia.tr("error." .. errorCode)
+    end
+    local message = type(status.message) == "string" and status.message or ""
+    if message ~= "" then
+      parts[#parts + 1] = message
+    end
+    if #parts > 0 then
+      subtitle = table.concat(parts, " — ")
+    end
+  end
   local children = {
-    ui.row({ gap = 8, justify = "space_between", width = "100%" }, {
+    ui.row({ width = "100%", gap = 10, align = "center" }, {
+      ui.glyph({
+        name = Icons.statusGlyph(status.phase, isBusy()),
+        size = 22,
+        color = accent,
+      }),
       ui.label({
         text = noctalia.tr("status." .. status.phase),
-        fontSize = 13,
+        fontSize = 21,
         fontWeight = "bold",
-        color = Icons.phaseColor(status.phase),
+        color = "on_surface",
+        maxLines = 1,
+        flexGrow = 1,
       }),
-      ui.row({ gap = 4, align = "center" }, {
-        ui.label({ text = noctalia.tr("panel.updated"), fontSize = 11, color = "on_surface_variant" }),
-        ui.label({ text = updated, fontSize = 11, color = "on_surface_variant" }),
+      powerButton(),
+    }),
+    ui.row({ width = "100%", gap = 8, align = "center" }, {
+      ui.label({
+        text = subtitle,
+        fontSize = 12,
+        color = "on_surface_variant",
+        maxLines = 2,
+        flexGrow = 1,
+      }),
+      ui.label({
+        text = noctalia.tr("panel.updated") .. " " .. updated,
+        fontSize = 11,
+        color = "on_surface_variant",
       }),
     }),
   }
-  local errorCode = type(status.errorCode) == "string" and status.errorCode or ""
-  if status.available == true and errorCode ~= "" then
-    children[#children + 1] = ui.label({
-      text = noctalia.tr("error." .. errorCode),
-      fontSize = 12,
-      color = "error",
+  if isTransitionPhase() then
+    children[#children + 1] = ui.progress({
+      key = "busy-progress",
+      progress = busyProgress(),
+      fill = CYAN,
+      track = CYAN .. "26",
+      height = 3,
+      radius = 2,
+      flexGrow = 1,
     })
-    local message = type(status.message) == "string" and status.message or ""
-    if message ~= "" then
-      children[#children + 1] = ui.label({
-        text = message,
-        fontSize = 11,
-        color = "on_surface_variant",
-        maxLines = 2,
-      })
-    end
   end
   return ui.column({
-    gap = 4,
-    padding = 10,
-    radius = 10,
-    fill = "surface_variant/0.4",
+    key = "hero-card",
     width = "100%",
+    gap = 8,
+    radius = 16,
+    borderWidth = 1,
+    paddingH = 16,
+    paddingV = 12,
+    fill = accent .. "14",
+    border = accent .. "66",
   }, children)
 end
 
-local function modeSection()
-  local locked = status.switchLocked == true
-  local enabled = status.available == true and status.busy ~= true
-    and not locked and status.phase ~= "unregistered"
-  local children = {
+local function modeColumn()
+  local options, selectedIndex, offset = selectData(
+    modeLabels(),
+    modeIndex(),
+    noctalia.tr("panel.mode.unknown")
+  )
+  return ui.column({ flexGrow = 1, gap = 6, align = "stretch" }, {
     sectionLabel(noctalia.tr("panel.section.mode")),
     ui.select({
       key = "mode-select",
-      options = modeLabels(),
-      selectedIndex = modeIndex(),
-      enabled = enabled,
-      onChange = onModeChange,
-      flexGrow = 1,
+      options = options,
+      selectedIndex = selectedIndex,
+      placeholder = noctalia.tr("panel.mode.unknown"),
+      enabled = controlsEnabled() and status.switchLocked ~= true,
+      height = 38,
+      onChange = function(index)
+        onModeChange(index, offset)
+      end,
     }),
-  }
-  if locked then
-    children[#children + 1] = caption(noctalia.tr("panel.mode.locked"))
-  end
-  return ui.column({ gap = 6, width = "100%" }, children)
+  })
 end
 
--- Families: segmented buttons, not a select - the value is write-only, and
--- "unknown" must not be presented as a known selection (SPEC 8.4).
-local function familiesButton(value, labelKey)
-  return ui.button({
+local function protocolColumn()
+  local options, selectedIndex, offset = selectData(
+    { "WireGuard", "MASQUE" },
+    protocolIndex(),
+    noctalia.tr("panel.protocol.unknown")
+  )
+  return ui.column({ flexGrow = 1, gap = 6, align = "stretch" }, {
+    sectionLabel(noctalia.tr("panel.section.protocol")),
+    ui.select({
+      key = "protocol-select",
+      options = options,
+      selectedIndex = selectedIndex,
+      placeholder = noctalia.tr("panel.protocol.unknown"),
+      enabled = controlsEnabled(),
+      height = 38,
+      onChange = function(index)
+        onProtocolChange(index, offset)
+      end,
+    }),
+  })
+end
+
+-- Controls: Mode and Protocol side by side; a lock caption sits underneath.
+local function controlsSection()
+  local children = {
+    ui.row({
+      width = "100%",
+      gap = 10,
+      align = "stretch",
+      opacity = isBusy() and 0.55 or 1.0,
+    }, {
+      modeColumn(),
+      protocolColumn(),
+    }),
+  }
+  if status.switchLocked == true then
+    children[#children + 1] = caption(noctalia.tr("panel.mode.locked"))
+  end
+  return ui.column({ width = "100%", gap = 6 }, children)
+end
+
+-- Families: custom segmented control (not a select - the value is write-only).
+-- One segment is always selected; unknown values present as the default.
+local function familiesSegment(value)
+  local selected = effectiveFamilies() == value
+  local enabled = controlsEnabled()
+  local fill, border = familiesSegmentColors(value)
+  return ui.column({
     key = "families-" .. value,
-    text = noctalia.tr(labelKey),
-    selected = status.families == value,
-    enabled = status.available == true and status.busy ~= true,
+    height = 38,
+    radius = 9,
+    flexGrow = 1,
+    align = "center",
+    justify = "center",
+    -- Explicit colors in both states: the host reconciler keeps absent flex
+    -- fill/border props, which would leave a stale cyan cell after deselect.
+    fill = fill,
+    border = border,
+    borderWidth = 1,
+    -- The track dims during busy; only an unregistered client dims segments
+    -- on their own so the two opacities never compound.
+    opacity = (not enabled and not isBusy()) and 0.55 or 1.0,
+    onHover = "familiesHover",
     onClick = function()
       onFamilies(value)
     end,
+  }, {
+    ui.label({
+      text = noctalia.tr("families." .. value),
+      fontSize = 12,
+      fontWeight = selected and "semibold" or nil,
+      color = selected and "on_surface" or "on_surface_variant",
+    }),
   })
 end
 
 local function familiesSection()
-  local children = {
+  return ui.column({ width = "100%", gap = 6 }, {
     sectionLabel(noctalia.tr("panel.section.families")),
-    ui.row({ gap = 6, width = "100%" }, {
-      familiesButton("off", "families.off"),
-      familiesButton("malware", "families.malware"),
-      familiesButton("full", "families.full"),
+    ui.row({
+      width = "100%",
+      gap = 3,
+      padding = 3,
+      radius = 12,
+      fill = "surface_variant/0.45",
+      border = "outline/0.25",
+      borderWidth = 1,
+      opacity = isBusy() and 0.55 or 1.0,
+    }, {
+      familiesSegment(FAMILIES_ORDER[1]),
+      familiesSegment(FAMILIES_ORDER[2]),
+      familiesSegment(FAMILIES_ORDER[3]),
     }),
-  }
-  if status.families == "unknown" then
-    children[#children + 1] = caption(noctalia.tr("panel.families.unknown"))
-  end
-  return ui.column({ gap = 6, width = "100%" }, children)
+  })
 end
 
-local function protocolSection()
-  local enabled = status.available == true and status.busy ~= true
-    and status.phase ~= "unregistered"
-  return ui.column({ gap = 6, width = "100%" }, {
-    sectionLabel(noctalia.tr("panel.section.protocol")),
-    ui.select({
-      key = "protocol-select",
-      options = { "WireGuard", "MASQUE" },
-      selectedIndex = protocolIndex(),
-      placeholder = noctalia.tr("panel.protocol.unknown"),
-      enabled = enabled,
-      onChange = onProtocolChange,
+-- Identity: egress data from the cdn-cgi/trace probe, honest when missing.
+local function identityRow(labelText, valueText)
+  return ui.row({ width = "100%", gap = 8, align = "center" }, {
+    ui.label({ text = labelText, fontSize = 12, color = "on_surface_variant" }),
+    ui.label({
+      text = valueText,
+      fontSize = 12,
+      color = "on_surface",
+      maxLines = 1,
+      textAlign = "end",
       flexGrow = 1,
     }),
   })
 end
 
-local function identityRow(labelKey, value)
-  return ui.row({ gap = 8, justify = "space_between", width = "100%" }, {
-    ui.label({ text = labelKey, fontSize = 12, color = "on_surface_variant" }),
-    ui.label({ text = value, fontSize = 12 }),
+local function ipRow()
+  local ip = traceIp()
+  local copyControl
+  if copiedUntilMs > 0 then
+    copyControl = ui.column({
+      key = "identity-copied",
+      width = 32,
+      height = 32,
+      align = "center",
+      justify = "center",
+    }, {
+      ui.glyph({ name = "check", size = 14, color = SUCCESS }),
+    })
+  else
+    copyControl = ui.button({
+      key = "identity-copy-ip",
+      glyph = "copy",
+      controlSize = "sm",
+      glyphSize = 14,
+      variant = "ghost",
+      tooltip = noctalia.tr("panel.action.copy_ip"),
+      enabled = ip ~= "",
+      onClick = onCopyIp,
+    })
+  end
+  return ui.row({ width = "100%", gap = 8, align = "center" }, {
+    ui.label({ text = noctalia.tr("panel.identity.ip"), fontSize = 12, color = "on_surface_variant" }),
+    ui.label({
+      text = if ip ~= "" then shortIp(ip) else noctalia.tr("panel.trace.none"),
+      fontSize = 12,
+      color = "on_surface",
+      maxLines = 1,
+      textAlign = "end",
+      flexGrow = 1,
+    }),
+    copyControl,
   })
 end
 
--- Identity: egress data from the cdn-cgi/trace probe; atMs = 0 means the
--- probe never ran, so there is no IP to show or copy.
 local function identitySection()
   local trace = type(status.trace) == "table" and status.trace or {}
-  local ip = type(trace.ip) == "string" and trace.ip or ""
-  local loc = if type(trace.loc) == "string" and trace.loc ~= "" then trace.loc else "—"
-  local colo = if type(trace.colo) == "string" and trace.colo ~= "" then trace.colo else "—"
+  local loc = type(trace.loc) == "string" and trace.loc ~= "" and trace.loc or "—"
+  local colo = type(trace.colo) == "string" and trace.colo ~= "" and trace.colo or "—"
   local warp = type(trace.warp) == "string" and trace.warp or ""
-  local warpValue = noctalia.tr("panel.trace.warp."
-    .. (if warp == "plus" then "plus" else if warp == "on" then "on" else "off"))
+  local warpValue = if warp == "on" or warp == "plus" or warp == "off"
+    then noctalia.tr("panel.trace.warp." .. warp)
+    else noctalia.tr("panel.trace.warp.unknown")
   local atMs = tonumber(trace.atMs) or 0
   local traced = if atMs > 0
     then noctalia.formatTime("%H:%M", math.floor(atMs / 1000))
-    else "—"
-  return ui.column({ gap = 4, width = "100%" }, {
-    sectionLabel(noctalia.tr("panel.section.identity")),
-    identityRow(noctalia.tr("panel.identity.ip"), if ip ~= "" then ip else noctalia.tr("panel.trace.none")),
+    else noctalia.tr("panel.trace.never")
+  return ui.column({
+    key = "identity-card",
+    width = "100%",
+    gap = 5,
+    radius = 16,
+    padding = 12,
+    fill = "surface_variant/0.35",
+    border = "outline/0.35",
+    borderWidth = 1,
+  }, {
+    ui.row({ width = "100%", gap = 8, align = "center" }, {
+      ui.label({
+        text = noctalia.tr("panel.section.identity"),
+        fontSize = 13,
+        fontWeight = "semibold",
+        color = "on_surface",
+        flexGrow = 1,
+      }),
+      ui.glyph({ name = "world", size = 14, color = CYAN }),
+    }),
+    ui.separator({ thickness = 1, color = "outline/0.25", spacing = 0 }),
+    ipRow(),
     identityRow(noctalia.tr("panel.identity.loc"), loc),
     identityRow(noctalia.tr("panel.identity.colo"), colo),
     identityRow(noctalia.tr("panel.identity.warp"), warpValue),
@@ -310,78 +823,103 @@ local function identitySection()
   })
 end
 
-local function actionsRow()
-  local trace = type(status.trace) == "table" and status.trace or {}
-  local ip = type(trace.ip) == "string" and trace.ip or ""
-  local children = {
-    ui.button({
-      key = "action-copy-ip",
-      text = noctalia.tr("panel.action.copy_ip"),
-      variant = "outline",
-      enabled = ip ~= "",
-      onClick = onCopyIp,
+-- Copy feedback replaces the outline button for ~1.6 s with an unmissable
+-- success state (native buttons do not take a text color). The identity-row
+-- copy control mirrors it so unregistered clients get feedback too.
+local function copiedFeedback()
+  return ui.column({
+    key = "action-copied",
+    height = 38,
+    flexGrow = 1,
+    radius = 10,
+    borderWidth = 1,
+    fill = SUCCESS .. "1F",
+    border = SUCCESS .. "99",
+    align = "center",
+    justify = "center",
+    onClick = onCopyIp,
+  }, {
+    ui.row({ gap = 6, align = "center", justify = "center" }, {
+      ui.glyph({ name = "check", size = 16, color = SUCCESS }),
+      ui.label({
+        text = noctalia.tr("panel.action.copied"),
+        fontSize = 13,
+        fontWeight = "medium",
+        color = SUCCESS,
+      }),
     }),
-  }
-  -- Register is only meaningful on an unregistered client with a live CLI.
-  if status.registered == false then
+  })
+end
+
+local function footerActions()
+  local ip = traceIp()
+  local children = {}
+  -- Register replaces Copy IP only while the client is genuinely unregistered.
+  if status.registered == false and status.available == true then
     children[#children + 1] = ui.button({
       key = "action-register",
       text = noctalia.tr("panel.action.register"),
+      glyph = "user-plus",
       variant = "primary",
+      flexGrow = 1,
       enabled = status.busy ~= true,
       onClick = onRegister,
+    })
+  elseif copiedUntilMs > 0 then
+    children[#children + 1] = copiedFeedback()
+  else
+    children[#children + 1] = ui.button({
+      key = "action-copy-ip",
+      text = noctalia.tr("panel.action.copy_ip"),
+      glyph = "copy",
+      variant = "outline",
+      flexGrow = 1,
+      enabled = ip ~= "",
+      onClick = onCopyIp,
     })
   end
   children[#children + 1] = ui.button({
     key = "action-settings",
     text = noctalia.tr("panel.action.settings"),
+    glyph = "settings",
     variant = "ghost",
     onClick = onSettings,
   })
-  return ui.row({ gap = 8, align = "center", width = "100%" }, children)
-end
-
-local function footerRow()
-  local cliVersion = type(status.cliVersion) == "string" and status.cliVersion or ""
-  return ui.label({
-    text = noctalia.tr("panel.version", { version = if cliVersion ~= "" then cliVersion else "—" }),
-    fontSize = 11,
-    color = "on_surface_variant",
-  })
+  return ui.row({ width = "100%", gap = 8, align = "center", paddingH = 16, paddingV = 8 }, children)
 end
 
 local function buildTree()
-  local children = {
-    headerRow(),
-    statusCard(),
+  local contentChildren = {
+    heroCard(),
   }
+  -- Missing CLI: controls are useless, so the hero carries the error and the
+  -- identity card keeps the last known values.
   if status.available == true then
-    children[#children + 1] = ui.scroll({ flexGrow = 1, gap = 12, width = "100%" }, {
-      modeSection(),
-      familiesSection(),
-      protocolSection(),
-      identitySection(),
-    })
-    children[#children + 1] = actionsRow()
-  else
-    -- Client missing: the controls are replaced by a single error line; the
-    -- Settings action stays so the plugin remains configurable.
-    children[#children + 1] = ui.label({
-      text = noctalia.tr("error.cli-missing"),
-      fontSize = 12,
-      color = "error",
-    })
-    children[#children + 1] = ui.row({ gap = 8, align = "center", width = "100%" }, {
-      ui.button({
-        key = "action-settings",
-        text = noctalia.tr("panel.action.settings"),
-        variant = "ghost",
-        onClick = onSettings,
-      }),
-    })
+    contentChildren[#contentChildren + 1] = controlsSection()
+    contentChildren[#contentChildren + 1] = familiesSection()
   end
-  children[#children + 1] = footerRow()
-  return ui.column({ gap = 12, padding = 14, align = "stretch", fill = 1, flexGrow = 1 }, children)
+  contentChildren[#contentChildren + 1] = identitySection()
+  return ui.column({
+    width = "100%",
+    gap = 0,
+    padding = 0,
+    align = "stretch",
+    flexGrow = 1,
+  }, {
+    banner(),
+    headerRow(),
+    ui.column({
+      key = "content-body",
+      width = "100%",
+      flexGrow = 1,
+      gap = 10,
+      paddingH = 16,
+      paddingV = 6,
+      opacity = easeOutCubic(entranceT),
+    }, contentChildren),
+    ui.separator({ thickness = 1, color = "outline/0.25" }),
+    footerActions(),
+  })
 end
 
 render = function()
@@ -394,13 +932,62 @@ end
 -- Entry lifecycle -------------------------------------------------------------
 
 function onOpen(_context)
-  isOpen = true
+  -- Apply while still closed so opening does not run the phase-transition dip.
   applyStatus(noctalia.state.get(State.CHANNEL_STATUS))
+  isOpen = true
+  local style = phaseStyle()
+  accentR, accentG, accentB = hexToRgb(style.accent)
+  bannerAlpha = style.bannerOpacity
+  entranceT = 0
+  frameAccMs = 0
+  progressStartMs = nowMs()
+  for _, id in ipairs(FAMILIES_ORDER) do
+    hoverCurrent[id] = 0
+    hoverTarget[id] = 0
+  end
+  wakeAnimation()
   render()
 end
 
 function onClose()
   isOpen = false
+  copiedUntilMs = 0
+  refreshUntilMs = 0
+  entranceT = 1
+  for _, id in ipairs(FAMILIES_ORDER) do
+    hoverCurrent[id] = 0
+    hoverTarget[id] = 0
+  end
+  panel.setWantsSecondTicks(false)
+  if frameTicksOn then
+    frameTicksOn = false
+    panel.setNeedsFrameTick(false)
+  end
+end
+
+-- Second ticks: clear expired feedback and stop ticking once both windows are
+-- idle. Feedback lasts at least its window, until the next tick past it.
+function update()
+  if not isOpen then
+    return
+  end
+  local now = nowMs()
+  local changed = false
+  if copiedUntilMs > 0 and now >= copiedUntilMs then
+    copiedUntilMs = 0
+    changed = true
+  end
+  if refreshUntilMs > 0 and now >= refreshUntilMs then
+    refreshUntilMs = 0
+    changed = true
+  end
+  if copiedUntilMs == 0 and refreshUntilMs == 0 then
+    panel.setWantsSecondTicks(false)
+  end
+  syncFrameTicks()
+  if changed then
+    render()
+  end
 end
 
 noctalia.state.watch(State.CHANNEL_STATUS, function(value)
@@ -411,3 +998,6 @@ noctalia.state.watch(State.CHANNEL_STATUS, function(value)
 end)
 
 applyStatus(noctalia.state.get(State.CHANNEL_STATUS))
+local initialStyle = phaseStyle()
+accentR, accentG, accentB = hexToRgb(initialStyle.accent)
+bannerAlpha = initialStyle.bannerOpacity

@@ -10,13 +10,13 @@
 
 | Поле | Значение |
 |------|----------|
-| **Plugin version** | `0.4.0` (tag `v0.4.0`) |
-| **Roadmap phase** | Phase 3 — Panel **done** (v0.4.0) |
-| **Branch** | `main` |
+| **Plugin version** | `0.4.1` (fix round committed on `feat/panel-redesign-v2`; tag pending) |
+| **Roadmap phase** | Phase 3 — Panel **done** (0.4.0 + redesign v2 0.4.1 + owner fix round) |
+| **Branch** | `feat/panel-redesign-v2` |
 | **Remote** | https://github.com/code-warlord-dev/cloudflare-warp-plugin |
-| **Last merge** | `86b5e77` Merge PR #4 — Phase 3 panel |
-| **Blockers** | нет |
-| **Next action** | tag `v0.4.0`, push; ручной visual sign-off SVG на баре (K-02) за владельцем; K-10 при необходимости владельцем |
+| **Last merge** | `3cf4813` chore(release): bump 0.3.0 -> 0.4.0 (origin/main) |
+| **Blockers** | none — K-11 resolved: `plugins list` shows `code-warlord/cloudflare-warp [warpdev] 0.4.1` |
+| **Next action** | push branch + PR; merge + tag `v0.4.1`; then Phase 4 |
 
 ---
 
@@ -39,6 +39,15 @@
 | implementer | Phase 3 Panel (panel.luau, service register, icons, translations) | done | `feat/phase-3-panel` → `release-0.4.0`, merged PR #4 |
 | reviewer | Phase 3 review (full + fix round) | done | APPROVE (ре-approv. после фиксов — лимит модели проверяющего; гейты верифицированы оркестратором: lint 0/0, панель без ошибок, register/refresh IPC, en/ru паритет) |
 | qa | Phase 3 live run на 5.3.0 | done | PASS (панель открывается, watch-колбэк чист, register/refresh через IPC без падений; GUI — manual) |
+| implementer | Panel redesign v2 (banner, hero, Mode/Protocol, Families, identity, footer) | done | working tree, `feat/panel-redesign-v2` |
+| reviewer | Redesign review (2 раунда + fix round) | done | APPROVE; lint 0/0; en/ru 99/99 |
+| qa | Redesign live QA + 8 screenshots | done | PASS; `docs/images/panel-*.png`; temp source/фикстуры восстановлены |
+| docs | README, CHANGELOG 0.4.1, `docs/DESIGN-PANEL.md`, root README | done | docs/DESIGN-PANEL.md |
+| orchestrator | Integration: STATE/ROADMAP/VERSIONING/SPEC + commit 0.4.1 | done | commit `0176f0e`; no push/merge без владельца |
+| implementer | Owner fix round: no scroll / content height, full-bleed banner, 21 px hero, Families default Malware, animations, 400 px width | done | working tree, `feat/panel-redesign-v2` |
+| reviewer | Self-review fix round: no state/CLI/network writes, plugin_api 24, no fixture, i18n parity | done | APPROVE; lint 0/0; en/ru 98/98 |
+| qa | Live QA fix round: connected + fixture states, animations, no scrollbar/clipping at 400×672 | done | PASS; QA fixture removed before commit |
+| orchestrator | Docs update for fix round + merge/tag 0.4.1 | in progress | push, PR, merge, tag `v0.4.1` |
 
 ---
 
@@ -66,6 +75,12 @@
 - [x] Phase 3: панель (заглушка → полная декларативная панель: header, status card, mode/families/protocol, identity, actions, footer), сервис `register` (registration new, 30 с таймаут, `error.register-pending`), `lib/icons.luau` (statusGlyph, phaseColor)
 - [x] Phase 3: reviewer fix round (README, футер `warp-cli {version}`, phaseColor → icons, onFamilies render), гейты lint 0/0 + паритет en/ru
 - [x] Phase 3: QA live PASS (панель открывается, watch-колбэк чист, register/refresh через IPC без падений), PR #4 merged, bump 0.4.0, CHANGELOG, STATE
+- [x] Panel redesign v2 (0.4.1): banner color/idle PNG, phase accents, status-first hero + power, Mode/Protocol side by side, segmented Families, identity card, Copy IP/Settings footer, honest unknown values
+- [x] Redesign gates: reviewer APPROVE ×2, lint 0/0, en/ru 99/99, live QA PASS, 8 screenshots в `docs/images/`
+- [x] Redesign docs: `docs/DESIGN-PANEL.md`, plugin README Panel rewrite, root README status, CHANGELOG 0.4.1
+- [x] Panel redesign v2 закоммичен `0176f0e` на `feat/panel-redesign-v2` (без push/merge/tag)
+- [x] Owner fix round 0.4.1: убран `ui.scroll` и scrollbar, высота по контенту 400×672, full-bleed banner через отрицательный padding, hero 21 px, Families всегда с выбранным Malware, анимации (вход, акцент/баннер, progress, refresh pulse, hover), ширина 400
+- [x] QA fix round: connected + fixture-состояния, анимация connecting, отсутствие scrollbar и обрезания; временная фикстура удалена из `service.luau` до коммита
 
 
 ---
@@ -76,7 +91,7 @@
 |----|-------------|----------|-------|
 | K-01 | Author handle: локально есть плагины `code_warlord/*`, выбран `code-warlord`; сверить до Phase 5 | minor | orchestrator |
 | K-02 | `setImage` со SVG: fallback + одна WRN проверены live (PR #3); **ручной** visual sign-off «SVG виден на баре глазами» за владельцем | minor | owner |
-| K-03 | `warp-cli dns families` write-only, геттера нет → `families = unknown` до установки в сессии | known limit | implementer |
+| K-03 | `warp-cli dns families` write-only, геттера нет → панель показывает дефолт `malware` до установки значения в сессии; реальное не-дефолтное значение после рестарта не определяется | known limit | implementer |
 | K-04 | Нет локального Luau-тулчейна (`luau`, `luau-analyze`, `selene`) — гейт только lint + runtime-лог | minor | Phase 4 |
 | K-05 | Включены конкурирующие `levi/warp` и `code_warlord/warp_toggle` — QA не трогает, фильтрует логи | minor | qa |
 | K-06 | `connecting` и `warn` иконки почти неразличимы на 16 px | minor | Phase 3 (design) |
@@ -84,6 +99,11 @@
 | K-08 | `cdn-cgi/trace` через `noctalia.http` падает бёрстами (`curl=28`, 30s-таймаут, опций нет) — обработано circuit breaker'ом; причина на уровне хоста/WARP-туннеля | known limit | Phase 4 / внешнее |
 | K-09 | `warp.command` (state-канал) не имеет CLI-пути записи — в QA проверен только IPC; оба пути сходятся в `dispatch` | minor | qa / Phase 3 |
 | K-10 | Параллельная вариация Phase 2 из `~/DEV` (другой fallback с setGlyphColor, решения в SPEC/spec/STATE) перемещена в `git stash@{0}` (main) + бэкап `/tmp/k10-parallel-backup.patch` и `/tmp/k10-icons-backup.luau` перед rebase на PR #3 — сверить и решить: отбросить или переупаковать в docs-decision | major | owner / orchestrator |
+| K-11 | ~~Source precedence: `warpqa` показывает 0.4.0~~ — resolved: `plugins list` отдаёт `[warpdev] 0.4.1`, панель живьём 400×672 | resolved | — |
+| K-12 | Host рисует scrollbar всегда, когда присутствует `ui.scroll` (см. `scroll_view.cpp`: visible = showScrollbar) → панель больше не использует `ui.scroll` вообще | resolved in panel | — |
+| K-13 | `[plugin_settings] panel_placement = "attached"` на dev-хосте переопределяет manifest `floating`; манифест корректен | minor | owner / config |
+| K-14 | На dev-хосте нет input-инструментов (ydotool/wtype/dotool), поэтому клики Settings/Refresh/selects проверены review + фикстурами, а не реальными нажатиями | minor | qa |
+| K-15 | Параллельная ветка `release-0.4.0` / worktree `feat/panel-redesign` (cline) содержит старые height-фиксы 900→650 для панели 0.4.0; в redesign v2 не входит, не мержилась и не удалялась | minor | owner |
 
 ---
 
@@ -97,7 +117,7 @@
 | 2026-10-19 | State = одна таблица на канал: `warp.status` + `warp.command` | атомарность, один `watch` на entry, plain data |
 | 2026-10-19 | `warp-cli … --json --no-paginate --no-ansi --accept-tos`, argv-only | без shell-парсинга и инъекций; tolerant text-fallback |
 | 2026-10-19 | Trace через `noctalia.http`, без `curl` | минус один subprocess в trust surface |
-| 2026-10-19 | Families = write-only, `unknown` при старте | CLI не отдаёт текущее значение |
+| 2026-10-19 | Families = write-only, `unknown` при старте | CLI не отдаёт текущее значение; **superseded 2026-10-20 → `malware` default** |
 | 2026-10-19 | No sudo, CLI only | trusted plugin safety + UX clarity |
 | 2026-10-19 | Bar icons = **SVG** via `setImage`, glyph — fallback; shortcut — glyph-only | бренд WARP; `shortcut.setIcon` путей не принимает |
 | 2026-10-19 | Локальный гейт — `noctalia plugins lint`; `validate-plugin` не существует | сверено с 5.3.0 |
@@ -107,6 +127,16 @@
 | 2026-10-20 | Trace circuit breaker: пауза после 3 неудач, backoff `interval×10×2^level` (max 160×), обход через `refresh` | `noctalia.http` без опции таймаута, лог спамился WRN/мин |
 | 2026-10-20 | Whitelist протокола — только ASCII (`MÁSQUE` отклоняется) | спека исправлена под эмпирику, `string.lower` ASCII-only |
 | 2026-10-20 | Bar-иконки: цвета свои, тонировка хостом (`currentColor`) **не** используется; `*.mono.svg` — запасной набор | тонировка хостом не проверена (K-02), мульти-цветные stroke читаемы на обеих темах; моно без тонировки рисовался бы чёрным |
+| 2026-10-20 | Panel v2: 400×672, **без** `ui.scroll`, footer через `flexGrow` | owner: scrollbar недопустим; 672 вмещает штатные состояния, 400 — чуть шире по брифу |
+| 2026-10-20 | Banner full-bleed через отрицательный padding (`-14`) и wrapper 82 px | хост добавляет 14 px inset, отключить его нельзя; image radius = 12 = panel radius |
+| 2026-10-20 | Families всегда показывает Malware по умолчанию | owner: пустого выбора быть не должно; CLI write-only, поэтому дефолт — единственный честный вариант |
+| 2026-10-20 | Hero status 21 px, ошибка сворачивается в subtitle | «Подключение…» не влезал при большем кегле; карточка держит стабильную высоту |
+| 2026-10-20 | Анимации через `panel.setNeedsFrameTick` + `onFrameTick` (33 ms), остановка в idle | хост даёт frame ticks только по запросу; второй тик — для copy/refresh feedback |
+| 2026-10-20 | Версия `warp-cli` в панели не показывается | не входит в редизайн-бриф, экономит вертикаль; версия доступна в настройках плагина |
+| 2026-10-20 | Unknown в Mode/Protocol = ведущая переведённая опция, offset в onChange | host select всегда выбирает option 0 и не умеет очищать выбор |
+| 2026-10-20 | Families segments всегда передают fill/border, unselected — `#00000000` | reconciler сохраняет отсутствующие flex-стили → stale cyan |
+| 2026-10-20 | Banner: color/idle PNG с запечённым нижним alpha-fade | у declarative UI нет gradient/overlay primitive |
+| 2026-10-20 | Состояния для скриншотов — временные фикстуры, реальный WARP не мутируется | QA safety: connect/disconnect/set-* не трогали |
 
 ---
 
@@ -115,6 +145,10 @@
 ```bash
 # lint (offline author gate)
 noctalia plugins lint cloudflare-warp
+
+# plugin sources (later path source wins; check before visual QA)
+noctalia msg plugins source list
+noctalia msg plugins list | grep cloudflare-warp
 
 # dev path source (once)
 noctalia msg plugins source add warpdev path /home/code_warlord/DEV/cloudflare-warp-plugin

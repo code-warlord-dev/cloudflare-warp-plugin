@@ -89,36 +89,50 @@
   },
   "panel": {
     "title": "Cloudflare WARP",
-    "version": "warp-cli {version}",
     "updated": "Updated",
     "section": {
       "mode": "Mode",
-      "families": "Families",
+      "families": "DNS filtering",
       "protocol": "Protocol",
       "identity": "Network identity"
     },
     "mode": {
+      "unknown": "Unknown",
       "locked": "Mode is locked by a policy"
-    },
-    "families": {
-      "unknown": "The current Families value is unknown"
     },
     "protocol": {
       "unknown": "Unknown"
     },
+    "hero": {
+      "subtitle": {
+        "connected": "Traffic is protected",
+        "disconnected": "Traffic is not protected",
+        "connecting": "Protecting traffic…",
+        "disconnecting": "Removing protection…",
+        "unregistered": "Client is not registered",
+        "error": "The last command failed",
+        "unavailable": "warp-cli is not in PATH",
+        "unknown": "State is unknown"
+      }
+    },
     "action": {
       "copy_ip": "Copy IP",
+      "copied": "Copied",
       "register": "Register",
       "settings": "Settings",
       "refresh": "Refresh",
-      "close": "Close"
+      "close": "Close",
+      "connect": "Connect WARP",
+      "disconnect": "Disconnect WARP"
     },
     "trace": {
-      "none": "No trace yet",
+      "none": "Unknown",
+      "never": "Not run yet",
       "warp": {
         "on": "WARP on",
         "plus": "WARP+",
-        "off": "WARP off"
+        "off": "WARP off",
+        "unknown": "Unknown"
       }
     },
     "identity": {

@@ -7,6 +7,68 @@ Versioning follows [SemVer](https://semver.org/) — see [VERSIONING.md](./VERSI
 
 ---
 
+## [0.4.1] - 2026-10-20
+
+### Added
+- Panel redesign v2 (`cloudflare-warp/panel.luau`): full-bleed 400×96 banner with a
+  bottom alpha fade, phase-accented hero card with large status, one-line subtitle,
+  "Updated HH:MM" and power button, side-by-side Mode/Protocol selects, segmented DNS
+  families control, network identity card and footer actions.
+- Animated presentation, driven by host frame ticks and stopped when idle: entrance
+  fade, eased accent/banner transitions on phase changes, a ping-pong progress bar plus
+  banner pulse while connecting/disconnecting, a pulsing Refresh loader, and hover
+  highlights on Families segments (native buttons animate their own hover/press).
+- Hero banner assets `assets/hero-banner-color.png` (connected; connecting/disconnecting
+  at 0.65 opacity) and `assets/hero-banner-idle.png` (dimmed for
+  disconnected/error/unavailable/unregistered/unknown), derived from
+  `assets/hero-banner.jpeg`.
+- Copy feedback for about 1.6 s in the footer and next to the identity IP, and a
+  ~1.5 s loader during Refresh; both windows use second ticks that stop when idle.
+- `panel.hero.subtitle.disconnecting` for the transition state, with en/ru key parity
+  (98/98).
+
+### Changed
+- Panel geometry and layout: 400×672, `floating`, reordered as banner → header → hero →
+  controls → details → footer. The old phase line and footer `warp-cli` version caption
+  are removed; the header remains the single close control.
+- The panel no longer uses a scroll container: the host draws a scrollbar whenever
+  `ui.scroll` is present (even when content fits), so the height is tuned to the tallest
+  regular state and the footer is anchored with `flexGrow`.
+- The banner bleeds to the panel edge: its wrapper cancels the host's 14 px inset with
+  negative padding and the image radius matches the 12 px panel radius.
+- Hero status is 21 px so the long Russian "Подключение…" state fits; multi-part error
+  details fold into the subtitle row instead of adding layout height.
+- Families always shows a selection: the CLI value is write-only, so an unset/unknown
+  value is presented as the Cloudflare default **Malware** (Вредоносные). The unknown
+  caption and its translation key are removed; the service and state defaults are now
+  `families = "malware"`.
+- Header is reduced to cloud glyph, title, Refresh and Close; the status card is replaced
+  by the hero card; Mode and Protocol share one row; Families is a segmented control on
+  a dimmed track; identity moved into a card; Copy IP and Settings are footer buttons.
+- Long IPv6 addresses are middle-truncated to fit the identity row, while the clipboard
+  always receives the full address.
+- Panel remains a renderer and command writer: every action uses
+  `State.setCommand(..., source = "panel")`; no `runAsync`, HTTP, CLI calls or
+  `warp.status` writes.
+
+### Fixed
+- Families segments no longer keep a stale cyan fill/border after another option is
+  selected; unselected segments now use explicit transparent fill and border.
+- No visible scrollbar in any panel state.
+
+### Known limits
+- `warp-cli dns families` is write-only: the value is never read back, so the panel
+  always falls back to the **Malware** default until a value is set in the current
+  service session; a real non-default value is not detected after a restart.
+- The 672 px panel height is host-owned and fixed. It fits every regular state
+  (connected, disconnected, connecting, unregistered); an unusual two-line error plus
+  the `switchLocked` caption may need a few extra pixels, and scrolling is intentionally
+  not used.
+- A user `[plugin_settings] panel_placement` value can override the manifest's `floating`
+  placement at runtime (currently `attached` on the development host).
+
+---
+
 ## [0.4.0] - 2026-10-20
 
 ### Added

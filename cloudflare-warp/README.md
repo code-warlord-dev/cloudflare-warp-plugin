@@ -67,32 +67,63 @@ the bar.
 
 ## Panel
 
-The floating panel (380×460) opens with a right click on the bar widget or
-via `noctalia msg panel-toggle code-warlord/cloudflare-warp:panel`. Layout,
-top to bottom:
+The panel opens with a right click on the bar widget or via
+`noctalia msg panel-toggle code-warlord/cloudflare-warp:panel`. The host owns
+the fixed 400×672 geometry. The manifest requests `placement = "floating"`;
+a user `[plugin_settings] panel_placement` value can override placement at
+runtime (the development host currently runs it attached). The panel has no
+scroll container — the host draws a scrollbar whenever one is present — so
+the height is tuned to the tallest regular state and the footer is anchored
+with `flexGrow`. Layout, top to bottom:
 
-- **Header** — status glyph, title, current phase, Refresh and Close buttons;
-- **Status card** — phase, last update time and the live error line, if any;
-- **Mode** — select with the seven operation modes; disabled while a policy
-  locks the mode or a command is in flight;
-- **Families** — three segmented buttons: Off / Malware / Full;
-- **Protocol** — WireGuard / MASQUE select;
-- **Identity** — egress IP, location, edge, WARP flag and trace time;
-- **Actions** — Copy IP, Register (only while unregistered) and Settings;
-- **Footer** — the installed `warp-cli` version.
+- **Banner** — full-bleed 400×96 phase image with a bottom alpha fade; the
+  wrapper cancels the host's 14 px inset with negative padding and the image
+  radius matches the panel. Full colour for connected, colour at 0.65 opacity
+  while connecting/disconnecting, and a dimmed idle image for
+  disconnected/error/unregistered/unknown;
+- **Header** — cloud glyph, "Cloudflare WARP", Refresh (with a short loader)
+  and Close; there is no duplicate close control;
+- **Hero card** — 21 px phase status, one-line subtitle, "Updated HH:MM" and
+  the power button; the accent is green when connected, orange when
+  disconnected, cyan while transitioning, red for error/unavailable, amber
+  for unregistered and grey for unknown. While connecting/disconnecting a
+  thin progress bar runs under the subtitle;
+- **Mode and Protocol** — two equal select columns; Mode is additionally
+  disabled while a policy locks it;
+- **DNS filtering** — segmented Off / Malware / Full control; one segment is
+  always selected, and an unset/unknown value is presented as the Cloudflare
+  default **Malware**;
+- **Network identity** — egress IP with a copy control, location, edge, WARP
+  flag and trace time, each shown honestly when missing;
+- **Footer** — Copy IP (outline) and Settings (ghost); Register (primary)
+  replaces Copy IP only while the client is unregistered.
+
+![Connected panel](../docs/images/panel-connected.png)
+
+More states and the full visual system: [docs/DESIGN-PANEL.md](../docs/DESIGN-PANEL.md).
+
+Copy IP shows a success state in the footer and next to the identity IP for
+about 1.6 s (driven by second ticks); Refresh shows a pulsing loader for about
+1.5 s. The panel animates its entrance, eases the hero accent and banner
+opacity when the phase changes, pulses the banner and progress bar while
+connecting/disconnecting, and highlights Families segments on hover. Frame
+ticks are requested only while an animation is active and stop when idle.
+Long IPv6 addresses are middle-truncated in the display but copied in full.
+There is no `warp-cli` version caption in the panel.
 
 Every panel action is written to the `warp.command` state channel and
-executed by the service; the panel never runs CLI calls or touches the
-network itself.
+executed by the service. The panel is a renderer and command writer only: no
+`runAsync`, no HTTP, no CLI calls and no `warp.status` writes.
 
 ### Families limitation
 
 `warp-cli dns families` is write-only: the client exposes no getter, so the
-plugin cannot read the current value. On every service start Families shows
-as *unknown* with **no button highlighted**. A selection applies immediately
-and can only be set, never reverted from the plugin — there is no way back to
-the previous value, and after a restart the plugin again shows *unknown* even
-though the client keeps the last applied setting.
+plugin cannot read the current value. The segmented control therefore always
+shows the Cloudflare default **Malware** until a value is set in the current
+service session. A selection applies immediately and can only be set, never
+reverted from the plugin — there is no way back to the previous value, and
+after a restart the plugin shows *Malware* again even though the client keeps
+the last applied setting.
 
 ### Warnings
 
