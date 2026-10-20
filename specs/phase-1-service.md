@@ -90,8 +90,9 @@ Target: `code-warlord/cloudflare-warp:service`, target-селектор **`all`*
 Правила:
 
 - payload — всегда строка, отсутствующий аргумент = `""` (не `nil`);
-- `set-protocol` принимает любой регистр, нормализуется в lowercase для state и в
-  канонический (`WireGuard`/`MASQUE`) для argv;
+- `set-protocol` принимает любой регистр ASCII, нормализуется в lowercase для state и в
+  канонический (`WireGuard`/`MASQUE`) для argv; не-ASCII значения (например `MÁSQUE`)
+  не проходят whitelist и отклоняются с warn, без вызова CLI;
 - `set-mode` при `switchLocked = true` → `notifyError(tr("error.mode-locked"))`, CLI не вызывается;
 - каждый принятый event → одна строка лога `cloudflare-warp: ipc <event> payload=<payload>`;
 - `onIpc` и `warp.command` идут в один и тот же обработчик `dispatch(action, fields, source)`
@@ -289,7 +290,11 @@ warp-cli --accept-tos --json --no-paginate --no-ansi status
       `warp_tunnel_protocol = "wireguard"`; вернуть baseline.
 - [ ] `… all set-mode "bogus"` → warn в логе, CLI не вызывается, state не меняется.
 - [ ] `… all set-families "bogus"` → warn, CLI не вызывается.
-- [ ] `… all set-protocol "MÁSQUE"` (регистр) → принимается, в state `masque`.
+- [ ] `… all set-protocol "MÁSQUE"` (не-ASCII, с акцентом) → **отклоняется**:
+      warn `rejected action=set-protocol payload=MÁSQUE` в логе, CLI не вызывается,
+      state не меняется — whitelist только ASCII (`string.lower("MÁSQUE")` ≠ `masque`).
+- [ ] `… all set-protocol "MASQUE"` / `"Masque"` (только регистр) → принимается,
+      в state `masque`.
 - [ ] После каждой мутации `busy` снимается; повторная команда во время `busy` игнорируется.
 
 **D. Ошибки**

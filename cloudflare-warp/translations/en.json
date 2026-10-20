@@ -26,6 +26,38 @@
       "label": "Compact mode (icon only)"
     }
   },
+  "notify": {
+    "connected": {
+      "title": "WARP connected",
+      "body": "Cloudflare WARP is now connected."
+    },
+    "disconnected": {
+      "title": "WARP disconnected",
+      "body": "Cloudflare WARP is now disconnected."
+    },
+    "error": {
+      "title": "WARP error"
+    }
+  },
+  "error": {
+    "cli-missing": "warp-cli not found in PATH",
+    "daemon-down": "WARP daemon is not reachable",
+    "unregistered": "WARP client is not registered",
+    "command-failed": "warp-cli command failed",
+    "timeout": "warp-cli command timed out",
+    "decode-failed": "could not parse warp-cli output",
+    "mode-locked": "Mode is locked by policy"
+  },
+  "status": {
+    "unavailable": "Unavailable",
+    "unregistered": "Not registered",
+    "disconnected": "Disconnected",
+    "connecting": "Connecting...",
+    "connected": "Connected",
+    "disconnecting": "Disconnecting...",
+    "error": "Error",
+    "unknown": "Unknown"
+  },
   "widget": {
     "text": {
       "brand": "WARP",
