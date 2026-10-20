@@ -356,7 +356,7 @@ local function buildTree()
     statusCard(),
   }
   if status.available == true then
-    children[#children + 1] = ui.scroll({ flexGrow = 1, gap = 12, width = "100%" }, {
+    children[#children + 1] = ui.column({ gap = 12, width = "100%" }, {
       modeSection(),
       familiesSection(),
       protocolSection(),
@@ -381,7 +381,7 @@ local function buildTree()
     })
   end
   children[#children + 1] = footerRow()
-  return ui.column({ gap = 12, padding = 14, align = "stretch", fill = 1, flexGrow = 1 }, children)
+  return ui.column({ gap = 12, padding = 14, align = "stretch" }, children)
 end
 
 render = function()
