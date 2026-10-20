@@ -51,7 +51,7 @@ Pre-1.0 (`0.x.y`):
 | 0.3.0 | Phase 2 | Bar widget + Control Center shortcut | released |
 | 0.4.0 | Phase 3 | Full panel UI | released |
 | 0.4.1 | Phase 3 | Panel redesign v2 (banner/hero/segmented/identity), no state/IPC change | released |
-| 0.4.2 | Phase 3 | Panel side gutters 30 → 16 px, no state/IPC change | current (branch, tag pending) |
+| 0.4.2 | Phase 3 | Panel side gutters 30 → 16 px, no state/IPC change | released |
 | 0.5.0 | Phase 4 | Polish, full i18n, error UX, README | planned |
 | 1.0.0 | Phase 5 | Public release / community-plugins | planned |
 | 1.x.y | Post-1.0 | Backlog features | backlog |

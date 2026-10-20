@@ -10,13 +10,13 @@
 
 | Поле | Значение |
 |------|----------|
-| **Plugin version** | `0.4.2` (fix prepared on `fix/panel-padding`; tag pending) |
+| **Plugin version** | `0.4.2` (tag `v0.4.2`, merge `ae2fe96`) |
 | **Roadmap phase** | Phase 3 — Panel **done** (0.4.0 + redesign v2 0.4.1 + padding 0.4.2) |
-| **Branch** | `fix/panel-padding` |
+| **Branch** | `main` |
 | **Remote** | https://github.com/code-warlord-dev/cloudflare-warp-plugin |
-| **Last merge** | `cb14a14` Merge PR #5 — panel fix round v0.4.1 (origin/main) |
+| **Last merge** | `ae2fe96` Merge PR #6 — panel padding v0.4.2 (origin/main) |
 | **Blockers** | none |
-| **Next action** | push branch + PR; merge + tag `v0.4.2`; then Phase 4 |
+| **Next action** | Phase 4 — Polish & i18n (v0.5.0) |
 
 ---
 
@@ -51,7 +51,7 @@
 | implementer | Owner padding fix: side gutters 30 → 16 px (root `paddingH = -14`, cards 368 px); vertical rhythm unchanged | done | `fix/panel-padding` |
 | reviewer | Self-review: panel still renderer-only, host-inset math verified live, no QA hooks left | done | APPROVE; lint 0/0 |
 | qa | Live QA: 400×672, 16 px gutters, no clipping/scrollbar; 8 screenshots refreshed | done | PASS; fixture removed before commit |
-| orchestrator | Docs update padding fix + release 0.4.2 | in progress | CHANGELOG/STATE/DESIGN/SPEC/README/spec; push, PR, merge, tag `v0.4.2` |
+| orchestrator | Docs update padding fix + release 0.4.2 | done | PR #6 merged `ae2fe96`; tag `v0.4.2` pushed |
 
 ---
 
