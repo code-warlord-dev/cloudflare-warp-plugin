@@ -10,13 +10,13 @@
 
 | Поле | Значение |
 |------|----------|
-| **Plugin version** | `0.1.0` (tag `v0.1.0`) |
-| **Roadmap phase** | Phase 0 — Bootstrap **done**; следующая Phase 1 — Service Core |
+| **Plugin version** | `0.2.0` (tag `v0.2.0`) |
+| **Roadmap phase** | Phase 1 — Service Core **done**; следующая Phase 2 — Widget + Shortcut |
 | **Branch** | `main` |
 | **Remote** | https://github.com/code-warlord-dev/cloudflare-warp-plugin |
-| **Last merge** | `c3efad0` Merge PR #1 — Phase 0 bootstrap |
+| **Last merge** | `f73fe8a` Merge PR #2 — Phase 1 service core |
 | **Blockers** | нет |
-| **Next action** | implementer: Phase 1 service core по `specs/phase-1-service.md` (target `0.2.0`) |
+| **Next action** | implementer: Phase 2 widget + shortcut по `specs/phase-2-widget.md` (target `0.3.0`; live-тест `barWidget.setImage` со SVG = K-02) |
 
 ---
 
@@ -29,7 +29,10 @@
 | implementer | Phase 0 Bootstrap (P0-T1) | done | merged PR #1 |
 | reviewer | Phase 0 review | done | APPROVE (after 1 blocker fix) |
 | qa | Phase 0 live run на 5.3.0 | done | PASS (GUI-пункты — вручную) |
-| implementer | Phase 1 Service Core (P1-T1) | next | target `0.2.0` |
+| implementer | Phase 1 Service Core (P1-T1) + fix round 2 | done | merged PR #2 |
+| reviewer | Phase 1 review (full + fix round) | done | APPROVE ×2 |
+| qa | Phase 1 live run + fix re-test | done | FAIL → fixes → PASS (baseline восстановлен) |
+| implementer | Phase 2 Widget + Shortcut (P2-T1) | next | target `0.3.0` |
 
 ---
 
@@ -45,6 +48,9 @@
 - [x] Phase 0: манифест + 4 entry + lib-заготовки + en/ru translations + README
 - [x] Phase 0: lint 0/0, live enable/disable/panel-toggle, WARP не тронут
 - [x] Phase 0: PR #1 merged, tag `v0.1.0`
+- [x] Phase 1: сервис — polling argv-only, `warp.status`/`warp.command`, IPC dispatch, мутации, trace, уведомления
+- [x] Phase 1: reviewer APPROVE ×2, QA полный прогон с реальными мутациями + re-test, фикс-раунд 2
+- [x] Phase 1: PR #2 merged, tag `v0.2.0`
 
 ---
 
@@ -59,6 +65,8 @@
 | K-05 | Включены конкурирующие `levi/warp` и `code_warlord/warp_toggle` — QA не трогает, фильтрует логи | minor | qa |
 | K-06 | `connecting` и `warn` иконки почти неразличимы на 16 px | minor | Phase 2 (design) |
 | K-07 | На `5.3.0-1-dirty` `plugins disable` не вызывает Luau `onExit`; acceptance под это поправлен | known limit | docs |
+| K-08 | `cdn-cgi/trace` через `noctalia.http` падает бёрстами (`curl=28`, 30s-таймаут, опций нет) — обработано circuit breaker'ом; причина на уровне хоста/WARP-туннеля | known limit | Phase 4 / внешнее |
+| K-09 | `warp.command` (state-канал) не имеет CLI-пути записи — в QA проверен только IPC; оба пути сходятся в `dispatch` | minor | qa / Phase 3 |
 
 ---
 
@@ -78,6 +86,9 @@
 | 2026-10-19 | Локальный гейт — `noctalia plugins lint`; `validate-plugin` не существует | сверено с 5.3.0 |
 | 2026-10-19 | Иконки престейджены в `cloudflare-warp/assets/icons/` до Phase 2 | пользовательский набор; в коде пока не используются |
 | 2026-10-19 | `onExit` не вызывается на disable в этой сборке — код не меняли, поправили acceptance | эмпирика QA |
+| 2026-10-20 | Уведомления по стабильной фазе (`lastStablePhase`, без `connecting`/`disconnecting`) | QA: toggle не давал пары connected→disconnected |
+| 2026-10-20 | Trace circuit breaker: пауза после 3 неудач, backoff `interval×10×2^level` (max 160×), обход через `refresh` | `noctalia.http` без опции таймаута, лог спамился WRN/мин |
+| 2026-10-20 | Whitelist протокола — только ASCII (`MÁSQUE` отклоняется) | спека исправлена под эмпирику, `string.lower` ASCII-only |
 
 ---
 
