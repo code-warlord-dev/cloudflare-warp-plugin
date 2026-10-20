@@ -326,8 +326,9 @@ noctalia msg plugins source remove warpdev
   или `"fill"`; auto/content-height и runtime `setSize` отсутствуют. Хост добавляет
   `Style::panelPadding = 14` со всех сторон и не даёт его отключить.
 - **Отрицательный padding работает.** `Flex::setPadding` присваивает значение напрямую,
-  layout использует отрицательные инсеты; wrapper с `padding = -14` позволяет баннеру
-  выйти на край панели (проверено live 0.4.1).
+  layout использует отрицательные инсеты; root с `paddingH = -14` отменяет боковой
+  host-inset, а wrapper с `paddingV = -14` позволяет баннеру выйти на верхний край
+  панели (проверено live 0.4.1, повторно 0.4.2).
 - **Frame ticks.** `panel.setNeedsFrameTick(true)` запрашивает кадры; глобальный
   `onFrameTick(deltaMs)` вызывается, пока флаг включён; кадры коалесцируются, тики
   прекращаются при закрытии панели. В idle флаг нужно выключать вручную.

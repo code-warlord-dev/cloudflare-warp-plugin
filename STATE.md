@@ -10,13 +10,13 @@
 
 | Поле | Значение |
 |------|----------|
-| **Plugin version** | `0.4.1` (tag `v0.4.1`, merge `cb14a14`) |
-| **Roadmap phase** | Phase 3 — Panel **done** (0.4.0 + redesign v2 0.4.1 + owner fix round) |
-| **Branch** | `main` |
+| **Plugin version** | `0.4.2` (fix prepared on `fix/panel-padding`; tag pending) |
+| **Roadmap phase** | Phase 3 — Panel **done** (0.4.0 + redesign v2 0.4.1 + padding 0.4.2) |
+| **Branch** | `fix/panel-padding` |
 | **Remote** | https://github.com/code-warlord-dev/cloudflare-warp-plugin |
 | **Last merge** | `cb14a14` Merge PR #5 — panel fix round v0.4.1 (origin/main) |
-| **Blockers** | none — K-11 resolved: `plugins list` shows `code-warlord/cloudflare-warp [warpdev] 0.4.1` |
-| **Next action** | Phase 4 — Polish & i18n (v0.5.0) |
+| **Blockers** | none |
+| **Next action** | push branch + PR; merge + tag `v0.4.2`; then Phase 4 |
 
 ---
 
@@ -48,6 +48,10 @@
 | reviewer | Self-review fix round: no state/CLI/network writes, plugin_api 24, no fixture, i18n parity | done | APPROVE; lint 0/0; en/ru 98/98 |
 | qa | Live QA fix round: connected + fixture states, animations, no scrollbar/clipping at 400×672 | done | PASS; QA fixture removed before commit |
 | orchestrator | Docs update fix round + release 0.4.1 | done | PR #5 merged `cb14a14`; tag `v0.4.1` pushed |
+| implementer | Owner padding fix: side gutters 30 → 16 px (root `paddingH = -14`, cards 368 px); vertical rhythm unchanged | done | `fix/panel-padding` |
+| reviewer | Self-review: panel still renderer-only, host-inset math verified live, no QA hooks left | done | APPROVE; lint 0/0 |
+| qa | Live QA: 400×672, 16 px gutters, no clipping/scrollbar; 8 screenshots refreshed | done | PASS; fixture removed before commit |
+| orchestrator | Docs update padding fix + release 0.4.2 | in progress | CHANGELOG/STATE/DESIGN/SPEC/README/spec; push, PR, merge, tag `v0.4.2` |
 
 ---
 
@@ -82,6 +86,8 @@
 - [x] Owner fix round 0.4.1: убран `ui.scroll` и scrollbar, высота по контенту 400×672, full-bleed banner через отрицательный padding, hero 21 px, Families всегда с выбранным Malware, анимации (вход, акцент/баннер, progress, refresh pulse, hover), ширина 400
 - [x] QA fix round: connected + fixture-состояния, анимация connecting, отсутствие scrollbar и обрезания; временная фикстура удалена из `service.luau` до коммита
 - [x] Release 0.4.1: PR #5 merged в `main` (`cb14a14`), tag `v0.4.1` создан и запушен; 8 скриншотов обновлены под 400×672
+- [x] Padding fix 0.4.2: root отменяет горизонтальный host-inset (`paddingH = -14`) → боковые поля 16 px, карточки 368 px; вертикальный ритм не изменён
+- [x] Padding QA: live connected + fixture-состояния, отсутствие clipping/scrollbar на 400×672; 8 скриншотов пересняты, фикстура удалена до коммита
 
 
 ---
@@ -138,6 +144,7 @@
 | 2026-10-20 | Families segments всегда передают fill/border, unselected — `#00000000` | reconciler сохраняет отсутствующие flex-стили → stale cyan |
 | 2026-10-20 | Banner: color/idle PNG с запечённым нижним alpha-fade | у declarative UI нет gradient/overlay primitive |
 | 2026-10-20 | Состояния для скриншотов — временные фикстуры, реальный WARP не мутируется | QA safety: connect/disconnect/set-* не трогали |
+| 2026-10-20 | Боковые поля панели 16 px: root `paddingH = -14` отменяет host-inset | owner: общий padding был слишком большим; 30 px → 16 px, карточки 340 → 368 px; вертикаль без изменений |
 
 ---
 

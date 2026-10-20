@@ -475,7 +475,7 @@ barWidget.setVisible(true)
 
 ```
 ui.column
-  ├─ banner-wrap (padding = -14) → image 400×96 (phase asset, bottom alpha fade)
+  ├─ banner-wrap (paddingV = -14) → image 400×96 (phase asset, bottom alpha fade)
   ├─ header: cloud glyph, title, Refresh, Close
   ├─ content-body (flexGrow=1, без ui.scroll)
   │   ├─ hero: status + subtitle + «Обновлено HH:MM» + power (+ progress в transition)
@@ -505,6 +505,10 @@ ui.column
 - Размер: `width = 400`, `height = 672` (host-owned, задаётся в манифесте; изменения
   применяются после disable/enable плагина). Scroll-контейнер не используется: хост
   рисует scrollbar всегда, поэтому высота подобрана под штатные состояния.
+- Отступы: root отменяет горизонтальный host-inset (`paddingH = -14`), поэтому
+  единственный боковой отступ — внутренние 16 px, а карточки занимают 368 px.
+  Banner-wrapper отменяет только верхний inset (`paddingV = -14`); вертикальный
+  ритм контента не меняется.
 
 ---
 

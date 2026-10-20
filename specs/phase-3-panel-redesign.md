@@ -60,10 +60,11 @@ magick /tmp/hero-idle-base.png /tmp/hero-mask.png -alpha off -compose CopyOpacit
 - Connecting/disconnecting — color asset с `opacity = 0.65`.
 - Исходный JPEG оставить в репозитории (README/соцсети), PNG — UI.
 
-Banner в панели: wrapper-колонка `height = 82` с `padding = -14` со всех сторон и
+Banner в панели: root отменяет горизонтальный host-inset (`paddingH = -14`), а
+banner-wrapper-колонка `height = 82` получает `paddingV = -14` и содержит
 `ui.image({ path = ..., width = 400, height = 96, radius = 12, fit = "cover",
-opacity = <по фазе × entrance> })`. Отрицательный padding компенсирует host-inset
-14 px, поэтому изображение начинается в точке (0,0) панели; нижний fade — из PNG.
+opacity = <по фазе × entrance> })`. Изображение начинается в точке (0,0) панели,
+боковой отступ равен 16 px; нижний fade — из PNG.
 
 ---
 
@@ -75,11 +76,12 @@ Manifest: `width = 400`, `height = 672`, `placement = "floating"`, `position = "
 
 > Решения после live-прогона и fix round владельца: 400×672 вместо 360×700; scroll
 > убран полностью; version caption убран; power — `md`; hero status 21 px, чтобы
-> «Подключение…» помещалось; ошибка свёрнута в subtitle; footer прижат `flexGrow`.
+> «Подключение…» помещалось; ошибка свёрнута в subtitle; footer прижат `flexGrow`;
+> боковые поля 16 px — root отменяет host-inset 14 px (`paddingH = -14`).
 
 ```
-root column (gap=0, padding=0, align="stretch", flexGrow=1)
-├─ banner-wrap column (height=82, padding=-14)
+root column (gap=0, paddingH=-14, paddingV=0, align="stretch", flexGrow=1)
+├─ banner-wrap column (height=82, paddingV=-14)
 │   └─ ui.image (400×96, radius=12)
 ├─ header row (paddingH=16, paddingV=8, align=center, gap=8)
 │   ├─ glyph cloud-lock 18 brand-orange

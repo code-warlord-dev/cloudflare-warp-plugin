@@ -2,7 +2,7 @@
 
 Статус: **Active**
 
-Текущая версия: `0.4.1` (Phase 3, panel redesign v2)
+Текущая версия: `0.4.2` (Phase 3, panel redesign v2)
 
 Целевая первая публичная: `1.0.0`
 
@@ -67,7 +67,7 @@
 
 ---
 
-## Phase 3 — Panel (v0.4.0 → v0.4.1)
+## Phase 3 — Panel (v0.4.0 → v0.4.2)
 
 **Цель:** полноценный UI управления.
 
@@ -79,11 +79,12 @@
 - [x] Floating, 400×672, без scroll-контейнера
 - [x] Panel redesign v2: phase banner, status-first hero + power, Mode/Protocol в две колонки, segmented Families, identity card, Copy IP/Settings footer, honest unknown
 - [x] Owner fix round: full-bleed banner, hero 21 px, Families = Malware default, анимации входа/акцента/progress/refresh/hover, ширина 400
+- [x] Side gutters 16 px: root отменяет host-inset 14 px, карточки 368 px (0.4.2)
 - [x] Live QA connected/disconnected/connecting + 8 screenshots + `docs/DESIGN-PANEL.md`
 
 **DoD:** из панели можно сменить mode/families/protocol и увидеть IP; визуальные состояния подтверждены live.
 
-**Bump:** `0.4.0` (MINOR) + `0.4.1` (PATCH — redesign v2 + owner fix round; структура state/IPC не менялись)
+**Bump:** `0.4.0` (MINOR) + `0.4.1`/`0.4.2` (PATCH — redesign v2, owner fix round и боковые поля; структура state/IPC не менялись)
 
 ---
 

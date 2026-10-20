@@ -8,8 +8,9 @@
 -- assets/hero-banner.jpeg (connected = color, idle = cooler/dimmer).
 --
 -- The host owns the panel size and adds a fixed 14 px padding around plugin
--- content, so the banner wrapper uses negative padding to bleed to the edge
--- and the manifest height is tuned to the tallest regular state (no scroll).
+-- content. The root cancels that inset horizontally so the inner 16 px gutter
+-- is the only side padding; the banner wrapper pulls the top inset and the
+-- panel height is tuned to the tallest regular state (no scroll).
 
 local State = require("./lib/state.luau")
 local Icons = require("./lib/icons.luau")
@@ -453,15 +454,14 @@ local function shortIp(ip)
   return string.sub(ip, 1, 13) .. "…" .. string.sub(ip, -12)
 end
 
--- Banner: full-bleed phase image. The wrapper sits in the normal content flow,
--- then negative padding pulls the 400x96 image over the host's 14 px inset;
--- the PNG carries the bottom alpha fade.
+-- Banner: full-bleed phase image. The root cancels the host's horizontal
+-- inset, so only the top inset is pulled with negative padding here; the PNG
+-- carries the bottom alpha fade.
 local function banner()
   local style = phaseStyle()
   return ui.column({
     key = "banner-wrap",
     height = BANNER_WRAP_HEIGHT,
-    paddingH = -HOST_PADDING,
     paddingV = -HOST_PADDING,
   }, {
     ui.image({
@@ -902,7 +902,8 @@ local function buildTree()
   return ui.column({
     width = "100%",
     gap = 0,
-    padding = 0,
+    paddingH = -HOST_PADDING,
+    paddingV = 0,
     align = "stretch",
     flexGrow = 1,
   }, {

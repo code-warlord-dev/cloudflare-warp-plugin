@@ -15,7 +15,7 @@ Runtime-плагин живёт в подкаталоге [`cloudflare-warp/`](.
 | [STATE.md](./STATE.md) | Живой статус (читать первым) |
 | [AGENTS.md](./AGENTS.md) | Оркестратор и субагенты |
 | [docs/API-NOTES.md](./docs/API-NOTES.md) | Проверенные факты о Noctalia 5.3.0 / warp-cli / `plugins lint` |
-| [docs/DESIGN-PANEL.md](./docs/DESIGN-PANEL.md) | Визуальная система и правила панели (0.4.1) |
+| [docs/DESIGN-PANEL.md](./docs/DESIGN-PANEL.md) | Визуальная система и правила панели (0.4.2) |
 | [specs/](./specs/) | Executable specs по фазам |
 | [.agents/skills/](./.agents/skills/) | Skills для агентов |
 | [templates/](./templates/) | Commit / PR / Push |
@@ -42,7 +42,7 @@ Runtime-плагин живёт в подкаталоге [`cloudflare-warp/`](.
 
 ## Статус
 
-См. [STATE.md](./STATE.md). Сейчас: **0.4.1**, Phase 3 завершена — сервис, bar widget,
+См. [STATE.md](./STATE.md). Сейчас: **0.4.2**, Phase 3 завершена — сервис, bar widget,
 Control Center shortcut и панель работают. Следующая — Phase 4 (polish, full i18n,
 error UX, README).
 
