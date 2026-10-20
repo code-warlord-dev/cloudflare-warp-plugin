@@ -1,6 +1,11 @@
 # Phase 3 — Panel
 
-**Target version:** `0.4.0` (MINOR)
+> **Visual layer superseded (0.4.1):** актуальная редакция панели — 360×700, banner/hero/
+> segmented Families/identity card/footer — в
+> [phase-3-panel-redesign.md](./phase-3-panel-redesign.md). State/IPC/actions ниже
+> остаются в силе.
+
+**Target version:** `0.4.0` (MINOR) + `0.4.1` (PATCH redesign)
 **Goal:** полноценная declarative-панель: статус, mode, families, protocol, trace, регистрация,
 быстрые действия. Все действия — через `warp.command`, панель сама ничего не запускает.
 
@@ -27,8 +32,8 @@ Phase 1 (state + `warp.command`), Phase 2 (иконки/палитра сост�
 [[panel]]
 id              = "panel"
 entry           = "panel.luau"
-width           = 380
-height          = 460
+width           = 360
+height          = 700
 placement       = "floating"
 position        = "auto"
 open_near_click = true
@@ -196,12 +201,12 @@ end)
 - [ ] `grep -Rn "state.set" cloudflare-warp/panel.luau` → только `warp.command`.
 - [ ] `grep -Rn "runAsync\|noctalia.http" cloudflare-warp/panel.luau` → пусто.
 - [ ] `grep -n "width\|height\|placement\|open_near_click" cloudflare-warp/plugin.toml`
-      → 380 / 460 / floating / true.
+      → 360 / 700 / floating / true.
 - [ ] Все ключи `panel.*`, `mode.*`, `families.*`, `error.*` есть в en и ru.
 
 **B. Открытие**
 
-- [ ] `noctalia msg panel-toggle code-warlord/cloudflare-warp:panel` → exit 0, панель 380×460.
+- [ ] `noctalia msg panel-toggle code-warlord/cloudflare-warp:panel` → exit 0, панель 360×700.
 - [ ] ПК по bar-виджету открывает ту же панель.
 - [ ] Escape и кнопка Close закрывают; повторный toggle тоже.
 - [ ] Панель не открывает вторую копию при повторном toggle.
@@ -248,11 +253,11 @@ end)
 
 | Risk | Mitigation |
 |------|------------|
-| `ui.select` не имеет пустого выбора | Protocol: placeholder; Families: кнопки |
+| `ui.select` не имеет пустого выбора | ведущая unknown-опция (host выбирает option 0); Families: сегменты |
 | `onChange` приходит строкой | всегда `tonumber` + проверка диапазона |
 | Families необратим | предупреждение в UI-подписи не нужно, но в README — да; QA не меняет Families |
 | `register` требует сети/интерактива | таймаут 30 с; `timedOut` → notify `error.register-pending`, а не `error`; панель не зависает |
-| Высота 460 не вмещает контент | `ui.scroll` + `flexGrow = 1` |
+| Высота 700 не вмещает контент | `ui.scroll` + `flexGrow = 1` |
 | Смена protocol рвёт туннель | предупредить в README, не блокировать |
 
 ## Version bump

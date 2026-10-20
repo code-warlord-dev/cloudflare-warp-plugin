@@ -46,10 +46,11 @@ Pre-1.0 (`0.x.y`):
 
 | Версия | Фаза | Содержание | Статус |
 |--------|------|------------|--------|
-| 0.1.0 | Phase 0 | Bootstrap: manifest, empty entries, i18n stubs | planned |
-| 0.2.0 | Phase 1 | Service core: poll, state, IPC toggle/connect | planned |
-| 0.3.0 | Phase 2 | Bar widget + Control Center shortcut | planned |
-| 0.4.0 | Phase 3 | Full panel UI | planned |
+| 0.1.0 | Phase 0 | Bootstrap: manifest, empty entries, i18n stubs | released |
+| 0.2.0 | Phase 1 | Service core: poll, state, IPC toggle/connect | released |
+| 0.3.0 | Phase 2 | Bar widget + Control Center shortcut | released |
+| 0.4.0 | Phase 3 | Full panel UI | released |
+| 0.4.1 | Phase 3 | Panel redesign v2 (banner/hero/segmented/identity), no state/IPC change | current (branch, tag pending) |
 | 0.5.0 | Phase 4 | Polish, full i18n, error UX, README | planned |
 | 1.0.0 | Phase 5 | Public release / community-plugins | planned |
 | 1.x.y | Post-1.0 | Backlog features | backlog |

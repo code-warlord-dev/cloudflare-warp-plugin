@@ -301,6 +301,24 @@ noctalia msg plugins source remove warpdev
 Горячая перезагрузка: правки `.luau` подхватываются file-watcher’ом; изменения
 `plugin.toml` — только через `noctalia msg config-reload`.
 
+### Проверенные повадки UI-хоста (select / flex / scroll)
+
+Сверено с исходниками Noctalia 5.3.0 (`src/ui/controls/select.cpp`,
+`src/ui/ui_tree_reconciler.cpp`, `src/ui/controls/scroll_view.cpp`); на живом хосте
+подтверждено в Phase 3.
+
+- **`ui.select` не умеет placeholder через `selectedIndex = nil`.** `setOptions` на непустом
+  списке автоматически выбирает индекс 0, а реконсилер применяет `selectedIndex` только при
+  смене scalar; смена options сбрасывает scalar. Поэтому «честное неизвестно» делается
+  ведущей переведённой опцией `panel.*.unknown`, а обработчик вычитает offset,
+  зафиксированный в замыкании на момент рендера.
+- **Отсутствующие `fill`/`border` у `column`/`row` наследуются от предыдущего рендера**
+  (стираются только у `drop_zone`). Условно прозрачный сегмент обязан явно передавать
+  `#00000000`, иначе после deselect остаётся залитый акцентом фон.
+- **Scrollbar в `ui.scroll` — хозяйский.** `scroll_view` показывает его по своему флагу
+  независимо от высоты контента; декларативного пропа скрытия нет. Видимая полоса при
+  помещающемся контенте — не ошибка layout плагина.
+
 ### Эмпирика `onExit` на сборке `5.3.0-1-dirty` (важно для acceptance)
 
 При `noctalia msg plugins disable` хост пишет в лог

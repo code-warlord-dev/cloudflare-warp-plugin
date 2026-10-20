@@ -67,23 +67,44 @@ the bar.
 
 ## Panel
 
-The floating panel (380×460) opens with a right click on the bar widget or
-via `noctalia msg panel-toggle code-warlord/cloudflare-warp:panel`. Layout,
-top to bottom:
+The panel opens with a right click on the bar widget or via
+`noctalia msg panel-toggle code-warlord/cloudflare-warp:panel`. The host owns
+the fixed 360×700 geometry. The manifest requests `placement = "floating"`;
+a user `[plugin_settings] panel_placement` value can override placement at
+runtime (the development host currently runs it attached). Layout, top to
+bottom:
 
-- **Header** — status glyph, title, current phase, Refresh and Close buttons;
-- **Status card** — phase, last update time and the live error line, if any;
-- **Mode** — select with the seven operation modes; disabled while a policy
-  locks the mode or a command is in flight;
-- **Families** — three segmented buttons: Off / Malware / Full;
-- **Protocol** — WireGuard / MASQUE select;
-- **Identity** — egress IP, location, edge, WARP flag and trace time;
-- **Actions** — Copy IP, Register (only while unregistered) and Settings;
-- **Footer** — the installed `warp-cli` version.
+- **Banner** — full-width 360×96 phase image with a bottom alpha fade;
+  full colour for connected, colour at 0.65 opacity while
+  connecting/disconnecting, and a dimmed idle image for
+  disconnected/error/unregistered/unknown;
+- **Header** — cloud glyph, "Cloudflare WARP", Refresh (with a short loader)
+  and Close; there is no duplicate close control;
+- **Hero card** — large phase status, one-line subtitle, "Updated HH:MM" and
+  the power button; the accent is green when connected, orange when
+  disconnected, cyan while transitioning, red for error/unavailable, amber
+  for unregistered and grey for unknown;
+- **Mode and Protocol** — two equal select columns; Mode is additionally
+  disabled while a policy locks it;
+- **DNS filtering** — segmented Off / Malware / Full control; while the value
+  is unknown no segment is selected and a caption explains why;
+- **Network identity** — egress IP with a copy control, location, edge, WARP
+  flag and trace time, each shown honestly when missing;
+- **Footer** — Copy IP (outline) and Settings (ghost); Register (primary)
+  replaces Copy IP only while the client is unregistered.
+
+![Connected panel](../docs/images/panel-connected.png)
+
+More states and the full visual system: [docs/DESIGN-PANEL.md](../docs/DESIGN-PANEL.md).
+
+Copy IP shows a success state in the footer and next to the identity IP for
+about 1.6 s (driven by second ticks); Refresh shows a loader for about 1.5 s.
+Long IPv6 addresses are middle-truncated in the display but copied in full.
+There is no `warp-cli` version caption in the panel.
 
 Every panel action is written to the `warp.command` state channel and
-executed by the service; the panel never runs CLI calls or touches the
-network itself.
+executed by the service. The panel is a renderer and command writer only: no
+`runAsync`, no HTTP, no CLI calls and no `warp.status` writes.
 
 ### Families limitation
 

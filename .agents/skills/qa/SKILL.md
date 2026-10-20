@@ -76,7 +76,7 @@ grep -n "cloudflare-warp" ~/.cache/noctalia/noctalia.log | tail -20
 | 10 | families | при старте `unknown`; invalid-value не меняет CLI |
 | 11 | widget | SVG + текст, ЛК toggle, ПК панель |
 | 12 | shortcut | checked = connected, busy → disabled |
-| 13 | panel | 380×460, mode/protocol/ip, Copy IP, Settings |
+| 13 | panel | 360×700, banner/hero, mode/protocol, Families, identity, Copy IP/Settings |
 | 14 | poll_interval | смена настройки → heartbeat реже, без рестарта shell |
 | 15 | disable/enable | onExit reason=disable, повторный enable чистый |
 | 16 | hot-reload | правка `.luau` → entry перезагружается, сервис жив |

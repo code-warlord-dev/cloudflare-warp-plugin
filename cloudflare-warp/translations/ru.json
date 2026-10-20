@@ -89,36 +89,53 @@
   },
   "panel": {
     "title": "Cloudflare WARP",
-    "version": "warp-cli {version}",
     "updated": "Обновлено",
     "section": {
       "mode": "Режим",
-      "families": "Families",
+      "families": "DNS-фильтрация",
       "protocol": "Протокол",
       "identity": "Сетевая идентичность"
     },
     "mode": {
+      "unknown": "Неизвестно",
       "locked": "Режим заблокирован политикой"
     },
     "families": {
-      "unknown": "Текущее значение Families неизвестно"
+      "unknown": "Текущее значение неизвестно — CLI не отдаёт его"
     },
     "protocol": {
       "unknown": "Неизвестно"
     },
+    "hero": {
+      "subtitle": {
+        "connected": "Трафик защищён",
+        "disconnected": "Трафик идёт напрямую",
+        "connecting": "Защищаем трафик…",
+        "disconnecting": "Снимаем защиту…",
+        "unregistered": "Клиент не зарегистрирован",
+        "error": "Команда завершилась ошибкой",
+        "unavailable": "warp-cli не найден в PATH",
+        "unknown": "Состояние неизвестно"
+      }
+    },
     "action": {
       "copy_ip": "Скопировать IP",
+      "copied": "Скопировано",
       "register": "Зарегистрировать",
       "settings": "Настройки",
       "refresh": "Обновить",
-      "close": "Закрыть"
+      "close": "Закрыть",
+      "connect": "Подключить WARP",
+      "disconnect": "Отключить WARP"
     },
     "trace": {
-      "none": "Трассировка не выполнялась",
+      "none": "неизвестно",
+      "never": "не выполнялась",
       "warp": {
         "on": "WARP включён",
         "plus": "WARP+",
-        "off": "WARP выключен"
+        "off": "WARP выключен",
+        "unknown": "неизвестно"
       }
     },
     "identity": {

@@ -400,8 +400,8 @@ entry = "shortcut.luau"
 [[panel]]
 id             = "panel"
 entry          = "panel.luau"
-width          = 380
-height         = 460
+width          = 360
+height         = 700
 placement      = "floating"
 position       = "auto"
 open_near_click = true
@@ -468,31 +468,38 @@ barWidget.setVisible(true)
 
 ### 8.4. Panel
 
-Декларативный `panel.render(ui.…)` в `onOpen` и после каждого изменения.
+Визуальная редакция v2 — [specs/phase-3-panel-redesign.md](../specs/phase-3-panel-redesign.md);
+контракт state/IPC ниже не меняется. Декларативный `panel.render(ui.…)` в `onOpen`
+и после каждого изменения.
 
 ```
 ui.column
-  ├─ header: glyph статуса, title, статус-текст, кнопка Refresh, Close
-  ├─ status card: mode, protocol, families, IP + loc + colo, updatedAt
-  ├─ ui.select Mode                  (7 значений, disabled при switchLocked)
-  ├─ Families: 3 ui.button (segmented) + caption про unknown
-  ├─ ui.select Protocol              (WireGuard / MASQUE)
-  ├─ actions: Copy IP | Register (если !registered) | Settings
-  └─ footer: cliVersion + подсказка
+  ├─ banner 360×96 (phase asset, bottom alpha fade)
+  ├─ header: cloud glyph, title, Refresh, Close
+  ├─ hero: status + subtitle + «Обновлено HH:MM» + power
+  ├─ Mode | Protocol          (два равных столбца)
+  ├─ Families: segmented + caption про unknown
+  ├─ identity card: IP (+copy), loc, colo, WARP, trace time
+  └─ footer: Copy IP | Register (если !registered) | Settings
 ```
 
-- Families — **кнопки**, а не `ui.select`: у `select` нет «пустого» выбора, и он визуально
-  соврёт про текущее значение. Кнопки: `selected = (families == value)`, при `unknown`
-  ни одна не выбрана + caption `tr("panel.families.unknown")`.
+- Families — **сегменты**, а не `ui.select`: у `select` нет «пустого» выбора, и он визуально
+  соврёт про текущее значение. Сегменты — `ui.column` с onClick на всю ячейку; при `unknown`
+  ни одна не выбрана + caption `tr("panel.families.unknown")`. Unselected обязан передавать
+  явные `fill="#00000000"` / `border="#00000000"`: host сохраняет отсутствующие flex-стили.
 - Mode/Protocol — `ui.select`; `onChange(index)` приходит строкой → `tonumber`.
+  Host выбирает option 0 для непустого списка, поэтому unknown = ведущая опция
+  `panel.mode.unknown` / `panel.protocol.unknown`, а обработчик вычитает offset.
 - Протокол в state — lowercase, в UI — `WireGuard` / `MASQUE`.
 - `trace.atMs == 0` → вместо IP показывать `tr("panel.trace.none")`, Copy IP disabled.
 - Время trace — `noctalia.formatTime("%H:%M", math.floor(trace.atMs / 1000))`.
-- Copy IP: `noctalia.copyToClipboard(trace.ip, "text/plain")`.
+- Copy IP: `noctalia.copyToClipboard(trace.ip, "text/plain")`; feedback только при `true`
+  (host возвращает bool), полный IP попадает в буфер даже если строка сокращена.
 - Settings: `noctalia.openSettings()`.
-- Register: `warp.command.action = "register"`; показывать/включать только при `!registered`.
-- `busy` → дизейбл всех мутирующих контролов + спиннер-глиф.
-- Размер: `width = 380`, `height = 460` (host-owned, задаётся в манифесте).
+- Register: `warp.command.action = "register"`; показывать/включать только при `!registered`,
+  заменяет Copy IP в footer.
+- `busy` → дизейбл всех мутирующих контролов + спиннер-глиф; контролы dim.
+- Размер: `width = 360`, `height = 700` (host-owned, задаётся в манифесте).
 
 ---
 
@@ -538,7 +545,7 @@ cloudflare-warp/
 3. Цвета текста — роли палитры (`primary`, `on_surface_variant`, `error`, `success`).
 4. Клики: ЛК toggle, ПК панель. Это **инверсия** относительно `levi/warp`
    (там ЛК — панель) — зафиксировать в README, чтобы не выглядело багом.
-5. Панель — floating, `position = "auto"`, `open_near_click = true`, 380×460.
+5. Панель — floating, `position = "auto"`, `open_near_click = true`, 360×700.
 6. Tooltip всегда информативен и локализован.
 7. Тексты статуса: `connected`, `disconnected`, `connecting`, `disconnecting`,
    `unregistered`, `error`, `unavailable`, `unknown` — все через `tr("status.<phase>")`.

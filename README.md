@@ -2,7 +2,7 @@
 
 Этот репозиторий/каталог — **мета-проект** для агентной разработки плагина Cloudflare WARP под Noctalia 5.x.
 
-Сам runtime-плагин будет жить в подкаталоге `cloudflare-warp/` (создаётся в Phase 0).
+Runtime-плагин живёт в подкаталоге [`cloudflare-warp/`](./cloudflare-warp/).
 
 ## Документы
 
@@ -15,6 +15,7 @@
 | [STATE.md](./STATE.md) | Живой статус (читать первым) |
 | [AGENTS.md](./AGENTS.md) | Оркестратор и субагенты |
 | [docs/API-NOTES.md](./docs/API-NOTES.md) | Проверенные факты о Noctalia 5.3.0 / warp-cli / `plugins lint` |
+| [docs/DESIGN-PANEL.md](./docs/DESIGN-PANEL.md) | Визуальная система и правила панели (0.4.1) |
 | [specs/](./specs/) | Executable specs по фазам |
 | [.agents/skills/](./.agents/skills/) | Skills для агентов |
 | [templates/](./templates/) | Commit / PR / Push |
@@ -41,8 +42,9 @@
 
 ## Статус
 
-См. [STATE.md](./STATE.md). Сейчас: **0.0.0**, Phase 0 не начата — документация и phase-specs сверены
-с реальным Noctalia 5.3.0 и `warp-cli` (см. [docs/API-NOTES.md](./docs/API-NOTES.md)), код ещё не написан.
+См. [STATE.md](./STATE.md). Сейчас: **0.4.1**, Phase 3 завершена — сервис, bar widget,
+Control Center shortcut и панель работают. Следующая — Phase 4 (polish, full i18n,
+error UX, README).
 
 Локальный гейт качества — `noctalia plugins lint cloudflare-warp` (команды `noctalia validate-plugin`
 не существует).

@@ -1,6 +1,6 @@
 id           = "code-warlord/cloudflare-warp"
 name         = "Cloudflare WARP"
-version      = "0.4.0"
+version      = "0.4.1"
 plugin_api   = 24
 author       = "code-warlord"
 license      = "MIT"
@@ -77,8 +77,8 @@ entry = "shortcut.luau"
 [[panel]]
 id             = "panel"
 entry          = "panel.luau"
-width          = 380
-height         = 460
+width          = 360
+height         = 700
 placement      = "floating"
 position       = "auto"
 open_near_click = true

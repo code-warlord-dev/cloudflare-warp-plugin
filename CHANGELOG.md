@@ -7,6 +7,52 @@ Versioning follows [SemVer](https://semver.org/) — see [VERSIONING.md](./VERSI
 
 ---
 
+## [0.4.1] - 2026-10-20
+
+### Added
+- Panel redesign v2 (`cloudflare-warp/panel.luau`): full-width 360×96 banner with a
+  bottom alpha fade, phase-accented hero card with large status, one-line subtitle,
+  "Updated HH:MM" and power button, side-by-side Mode/Protocol selects, segmented DNS
+  families control, network identity card and footer actions.
+- Hero banner assets `assets/hero-banner-color.png` (connected; connecting/disconnecting
+  at 0.65 opacity) and `assets/hero-banner-idle.png` (dimmed for
+  disconnected/error/unavailable/unregistered/unknown), derived from
+  `assets/hero-banner.jpeg`.
+- Copy feedback for about 1.6 s in the footer and next to the identity IP, and a
+  ~1.5 s loader during Refresh; both windows use second ticks that stop when idle.
+- Honest unknown presentation: Mode and Protocol use a leading "Unknown" option, and
+  Families shows no selected segment plus an explanatory caption until a value is set.
+- `panel.hero.subtitle.disconnecting` for the transition state, with en/ru key parity
+  (99/99).
+
+### Changed
+- Panel geometry and layout: 360×700, `floating`, reordered as banner → header → hero →
+  controls → details → footer. The old phase line and footer `warp-cli` version caption
+  are removed; the header remains the single close control.
+- Header is reduced to cloud glyph, title, Refresh and Close; the status card is replaced
+  by the hero card; Mode and Protocol share one row; Families is a segmented control on
+  a dimmed track; identity moved into a card; Copy IP and Settings are footer buttons.
+- Long IPv6 addresses are middle-truncated to fit the identity row, while the clipboard
+  always receives the full address.
+- Panel remains a renderer and command writer: every action uses
+  `State.setCommand(..., source = "panel")`; no `runAsync`, HTTP, CLI calls or
+  `warp.status` writes.
+
+### Fixed
+- Families segments no longer keep a stale cyan fill/border after another option is
+  selected; unselected segments now use explicit transparent fill and border.
+
+### Known limits
+- `warp-cli dns families` is write-only: Families stays unknown until set in the current
+  service session and is never read back, so no segment can be highlighted after a
+  restart.
+- The 700 px panel height is host-owned and fixed; content scrolls only when needed. The
+  host may draw its scrollbar even when all content fits.
+- A user `[plugin_settings] panel_placement` value can override the manifest's `floating`
+  placement at runtime (currently `attached` on the development host).
+
+---
+
 ## [0.4.0] - 2026-10-20
 
 ### Added
