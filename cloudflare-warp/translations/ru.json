@@ -26,6 +26,38 @@
       "label": "Компактный режим (только иконка)"
     }
   },
+  "notify": {
+    "connected": {
+      "title": "WARP подключён",
+      "body": "Cloudflare WARP теперь подключён."
+    },
+    "disconnected": {
+      "title": "WARP отключён",
+      "body": "Cloudflare WARP теперь отключён."
+    },
+    "error": {
+      "title": "Ошибка WARP"
+    }
+  },
+  "error": {
+    "cli-missing": "warp-cli не найден в PATH",
+    "daemon-down": "Демон WARP недоступен",
+    "unregistered": "Клиент WARP не зарегистрирован",
+    "command-failed": "Команда warp-cli завершилась с ошибкой",
+    "timeout": "Команда warp-cli превысила таймаут",
+    "decode-failed": "Не удалось разобрать вывод warp-cli",
+    "mode-locked": "Режим заблокирован политикой"
+  },
+  "status": {
+    "unavailable": "Недоступен",
+    "unregistered": "Не зарегистрирован",
+    "disconnected": "Отключён",
+    "connecting": "Подключение...",
+    "connected": "Подключён",
+    "disconnecting": "Отключение...",
+    "error": "Ошибка",
+    "unknown": "Неизвестно"
+  },
   "widget": {
     "text": {
       "brand": "WARP",

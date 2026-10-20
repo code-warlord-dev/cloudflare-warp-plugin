@@ -3,6 +3,8 @@
 *.swp
 *.swo
 *~
+.vscode/
+.idea/
 
 # Logs & local state
 *.log
