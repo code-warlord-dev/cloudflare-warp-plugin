@@ -2,10 +2,11 @@
 
 Control Cloudflare WARP from the Noctalia bar, Control Center and a dedicated panel.
 
-> **Status: 0.2.0 (Phase 1 service core).** The service is the single source of
-> truth for WARP state: it polls `warp-cli`, publishes one `warp.status` table and
-> executes whitelisted mutations from IPC and the `warp.command` channel. The bar
-> widget, shortcut and panel still render placeholders (Phase 2–3).
+> **Status: Phase 2 — service, bar widget and shortcut are live.** The service
+> is the single source of truth for WARP state: it polls `warp-cli`, publishes
+> one `warp.status` table and executes whitelisted mutations from IPC and the
+> `warp.command` channel. The bar widget and Control Center shortcut render
+> live state and toggle WARP; the panel still renders a placeholder (Phase 3).
 
 ## Dependency
 
@@ -46,12 +47,22 @@ noctalia msg plugins source remove warpdev
 | Entry | Type | What it does |
 |-------|------|--------------|
 | `service` | service | Headless owner of WARP state: polls `warp-cli`, publishes `warp.status`, consumes `warp.command` and IPC. |
-| `widget` | bar widget | `cloud-lock` glyph plus `WARP` text. Phase 2 adds status icons and clicks. |
-| `shortcut` | Control Center | Static off-state tile. Phase 2 makes it a live toggle. |
+| `widget` | bar widget | Phase status SVG icon, short status text and tooltip; toggles WARP on click. |
+| `shortcut` | Control Center | Live tile synced to `warp.status`; toggles WARP on click, refreshes on right click. |
 | `panel` | floating panel | Header, placeholder and version. Phase 3 adds controls. |
 
-Bar clicks (Phase 2) will follow the project convention: **left click toggles WARP, right
-click opens the panel**. This is the opposite of `levi/warp`.
+## Interactions
+
+| Surface | Left click | Right click |
+|---------|-----------|-------------|
+| Bar widget | Toggle WARP (`warp.command` action `toggle`) | Open the plugin panel |
+| Control Center tile | Toggle WARP (`warp.command` action `toggle`) | Refresh status (`warp.command` action `refresh`) |
+
+Toggle clicks are ignored while the service reports `busy`, and the tile is
+disabled while `warp-cli` is unavailable. The bar shows per-phase SVG icons;
+the Control Center tile uses Tabler glyphs (`cloud-lock` / `cloud-off`)
+because `shortcut.setIcon` accepts glyph names only — SVG icons are used in
+the bar.
 
 ## IPC
 

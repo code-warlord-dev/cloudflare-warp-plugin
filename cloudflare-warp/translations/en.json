@@ -60,12 +60,31 @@
   },
   "widget": {
     "text": {
-      "brand": "WARP",
-      "unknown": "WARP status unknown"
+      "on": "On",
+      "off": "Off",
+      "connecting": "…",
+      "register": "Register",
+      "error": "Error",
+      "unknown": "Unknown"
+    },
+    "tooltip": {
+      "status": "Status",
+      "mode": "Mode",
+      "families": "Families",
+      "protocol": "Protocol",
+      "ip": "IP",
+      "location": "Location",
+      "updated": "Updated",
+      "error": "Error"
     }
   },
   "shortcut": {
-    "off": "WARP Off"
+    "on": "WARP On",
+    "off": "WARP Off",
+    "connecting": "WARP Connecting...",
+    "register": "WARP Register",
+    "error": "WARP Error",
+    "unknown": "WARP Unknown"
   },
   "panel": {
     "title": "Cloudflare WARP",

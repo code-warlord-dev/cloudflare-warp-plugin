@@ -16,6 +16,37 @@ Versioning follows [SemVer](https://semver.org/) — see [VERSIONING.md](./VERSI
 
 ---
 
+## [0.3.0] - 2026-10-20
+
+### Added
+- Phase 2 bar widget + Control Center shortcut, both live-bound to the service state channel.
+  - Bar widget: per-phase SVG icon via `barWidget.setImage(path, false, 16, 16)`, short status
+    text (`show_text_in_bar` / `compact_mode` respected) and a detail tooltip
+    (status, mode, families when known, protocol, IP/loc from trace, updated time, error).
+    Falls back to a Tabler glyph when the phase SVG asset is missing: one warning per
+    entry lifetime via `noctalia.fileExists()` probe, never spam.
+  - Left click toggles WARP (`warp.command`, ignored while `busy`); right click opens the
+    plugin panel via `noctalia.togglePanel`.
+  - Control Center shortcut: phase label, `cloud-lock`/`cloud-off` glyphs, active when
+    connected/connecting, disabled when unavailable/busy. Left click toggles, right click
+    refreshes. `shortcut.setIcon` accepts glyph names only — glyph-only tiles in Control
+    Center are an API limit, not an omission; SVG is bar-only.
+  - New shared `lib/icons.luau`: single phase -> SVG path / glyph / text mapping plus
+    tooltip rows and `normalizePhase` (closed phase set from `lib/state.luau`).
+  - UI entries write commands through the existing `State.setCommand` helper
+    (`seq = noctalia.nowMs()`); no `runAsync`, no HTTP, no file reads in widget/shortcut.
+  - Translations: `widget.text.*`, `widget.tooltip.*`, `shortcut.*` with full en/ru parity;
+    removed unused `widget.text.brand`.
+- README: Interactions section (clicks for widget and shortcut) and the Control Center
+  glyph note.
+
+### Known limits
+- Phase 2 live-tested on 5.3.0: hot-reload, disable/enable, SVG fallback and real widget
+  clicks verified; visual confirmation of SVG rasterization on the bar is a manual
+  checklist item (glyph fallback covers hosts without SVG support).
+
+---
+
 ## [0.2.0] - 2026-10-19
 
 ### Added
