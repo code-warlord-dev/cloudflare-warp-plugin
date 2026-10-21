@@ -1,13 +1,28 @@
 # Cloudflare WARP — Noctalia plugin
 
 Control Cloudflare WARP from the Noctalia bar, Control Center and a dedicated panel.
+A headless service is the single source of truth: it polls `warp-cli`, publishes one
+`warp.status` state table, and executes whitelisted mutations from IPC and the UI.
+Everything else — bar widget, Control Center tile, panel — is a live renderer that
+never touches the CLI or the network itself.
 
-> **Status: Phase 3 — service, bar widget, shortcut and panel are live.** The
-> service is the single source of truth for WARP state: it polls `warp-cli`,
-> publishes one `warp.status` table and executes whitelisted mutations from
-> IPC and the `warp.command` channel. The bar widget and Control Center
-> shortcut render live state and toggle WARP; the panel exposes the full
-> control surface (mode, families, protocol, identity, registration).
+## Features
+
+- **Bar widget** — per-phase SVG icon, short status text and a detail tooltip;
+  left click opens the panel, right click toggles WARP.
+- **Control Center tile** — live label/active/enabled state; left click toggles,
+  right click refreshes.
+- **Panel** — full control surface: animated status banner, hero card with power
+  button, mode and protocol selects, DNS Families segments, network identity
+  (egress IP, location, edge, WARP flag, trace time), register and copy-IP actions.
+- **Notifications** — connected/disconnected notifications and error notifications,
+  both optional; transitional phases are held until the tunnel settles, so the UI
+  never flashes back to a stale state.
+- **Network identity tracking** — a lightweight `cdn-cgi/trace` probe with an
+  adjustable interval, a follow-up probe right after connect/disconnect/mode or
+  protocol changes, and a circuit breaker that pauses probing after repeated
+  failures (a manual refresh clears it).
+- **Full i18n** — English and Russian, following the host language.
 
 ## Dependency
 
@@ -16,7 +31,8 @@ The plugin requires Cloudflare's official `cloudflare-warp` package, which provi
 
 - <https://developers.cloudflare.com/warp-client/get-started/linux/>
 
-WARP itself must already be installed and registered. The plugin never runs `sudo`,
+WARP itself must already be installed, and registering the client is an interactive,
+browser-based sign-in flow owned by Cloudflare. The plugin never runs `sudo`,
 `pkexec` or `systemctl`; it works through the user-facing CLI only.
 
 ### Terms of service
@@ -25,10 +41,10 @@ Every `warp-cli` invocation passes `--accept-tos`. This means the plugin accepts
 Cloudflare's WARP terms of service **on your behalf**; review them before enabling the
 plugin.
 
-## Installation (path source)
+## Installation
 
-The repository root is a Noctalia plugin source; the plugin itself lives in the
-`cloudflare-warp/` directory (the suffix of its id).
+Install from the Noctalia plugin store once published, or run this repository as a
+local path source:
 
 ```bash
 noctalia msg plugins source add warpdev path /path/to/cloudflare-warp-plugin
@@ -36,172 +52,163 @@ noctalia msg plugins list | grep cloudflare-warp
 noctalia msg plugins enable code-warlord/cloudflare-warp
 ```
 
-To remove the development source later:
+The repository root is the plugin source; the plugin itself lives in the
+`cloudflare-warp/` directory (the suffix of its id). To remove the development
+source later:
 
 ```bash
 noctalia msg plugins disable code-warlord/cloudflare-warp
 noctalia msg plugins source remove warpdev
 ```
 
-## Entries
+## Configuration
 
-| Entry | Type | What it does |
-|-------|------|--------------|
-| `service` | service | Headless owner of WARP state: polls `warp-cli`, publishes `warp.status`, consumes `warp.command` and IPC. |
-| `widget` | bar widget | Phase status SVG icon, short status text and tooltip; opens the panel on left click, toggles WARP on right click. |
-| `shortcut` | Control Center | Live tile synced to `warp.status`; toggles WARP on click, refreshes on right click. |
-| `panel` | floating panel | Full control surface: hero card, mode, families, protocol, identity, registration actions. |
-
-## Interactions
-
-| Surface | Left click | Right click |
-|---------|-----------|-------------|
-| Bar widget | Open the plugin panel | Toggle WARP (`warp.command` action `toggle`) |
-| Control Center tile | Toggle WARP (`warp.command` action `toggle`) | Refresh status (`warp.command` action `refresh`) |
-
-Toggle (right click on the bar) is ignored while the service reports `busy`, and
-the tile is disabled while `warp-cli` is unavailable. The bar shows per-phase
-SVG icons;
-the Control Center tile uses Tabler glyphs (`cloud-lock` / `cloud-off`)
-because `shortcut.setIcon` accepts glyph names only — SVG icons are used in
-the bar.
+| Setting | Default | What it does |
+|---------|---------|--------------|
+| `poll_interval_ms` | 3000 | How often the service polls `warp-cli status`. |
+| `notify_on_change` | on | Connected / disconnected notifications. |
+| `notify_on_error` | on | Error notifications (CLI-missing is excluded). |
+| `auto_trace` | on | Periodic `cdn-cgi/trace` probe for network identity. |
+| `trace_interval_s` | 60 | Trace probe interval (visible only with `auto_trace`). |
+| `show_text_in_bar` (widget) | on | Status text next to the bar icon. |
+| `compact_mode` (widget) | off | Icon only, no text. |
 
 ## Panel
 
 The panel opens with a left click on the bar widget or via
-`noctalia msg panel-toggle code-warlord/cloudflare-warp:panel`. The host owns
-the fixed 400×734 geometry. The manifest requests `placement = "floating"`;
-a user `[plugin_settings] panel_placement` value can override placement at
-runtime (the development host currently runs it attached). The panel has no
-scroll container — the host draws a scrollbar whenever one is present — so
-the height is tuned to the tallest regular state and the footer is anchored
-with `flexGrow`. Layout, top to bottom:
+`noctalia msg panel-toggle code-warlord/cloudflare-warp:panel`. Layout, top to
+bottom: animated full-bleed banner (plays a colour ramp forward when the tunnel is
+up and in reverse on disconnect, and sits on a desaturated first frame while WARP is
+off, so the banner always matches the phase), header with refresh and close, hero
+card with phase status and power button, Mode and Protocol selects (Mode is
+disabled while a policy lock is active), DNS filtering segments, network identity
+card, and a footer with Copy IP / Register and Settings.
 
-- **Banner** — full-bleed 400×160 animated image (27 WebP frames rendered
-  from `assets/wGjQl.gif`, each with a baked saturation step from 20 % to
-  full colour and a bottom alpha fade into the panel body). The 2.5:1 asset
-  matches the display box exactly, so the full GIF width is kept — nothing is
-  cropped on the left or right. Opening the panel while connected or
-  connecting plays frames 0 → 26 at the GIF's native 100 ms/frame and holds
-  the last frame; opening while WARP is off shows frame 0 statically with no
-  animation, so the banner matches the phase. Disconnecting plays 26 → 0 and
-  fades the colour down to 20 % (never fully black and white). The
-  root cancels the host's 14 px
-  horizontal inset so the only side gutter is 16 px (cards are 368 px wide),
-  and the banner wrapper pulls the top inset; the image radius matches the
-  panel;
-- **Header** — cloud glyph, "Cloudflare WARP", Refresh (standard glyph with
-  an opacity pulse during feedback) and Close; there is no duplicate close
-  control;
-- **Hero card** — 21 px phase status with a green `shield-check` glyph while
-  connected (phase glyph otherwise), one-line subtitle,
-  "Updated HH:MM" and the power button; the accent is green when connected,
-  muted red-orange when disconnected, cyan while transitioning, red for
-  error/unavailable, amber for unregistered and grey for unknown. While
-  connecting/disconnecting a live five-bar wave runs under the subtitle;
-- **Mode and Protocol** — two equal select columns; Mode is additionally
-  disabled while a policy locks it;
-- **DNS filtering** — segmented Off / Malware / Full control; one segment is
-  always selected, and an unset/unknown value is presented as the Cloudflare
-  default **Malware**;
-- **Network identity** — egress IP with a copy control, location, edge, WARP
-  flag and trace time, each shown honestly when missing;
-- **Footer** — Copy IP (outline) and Settings (ghost); Register (primary)
-  replaces Copy IP only while the client is unregistered.
+Every panel action is written to the `warp.command` state channel and executed by
+the service. The panel is a renderer and command writer only: no `runAsync`, no
+HTTP, no CLI calls and no `warp.status` writes. Long IPv6 addresses are
+middle-truncated in the display but copied in full. The panel does not show the
+`warp-cli` version.
 
-![Connected panel](../docs/images/panel-connected.png)
+### Interactions
 
-More states and the full visual system: [docs/DESIGN-PANEL.md](../docs/DESIGN-PANEL.md).
+| Surface | Left click | Right click |
+|---------|-----------|-------------|
+| Bar widget | Open the plugin panel | Toggle WARP |
+| Control Center tile | Toggle WARP | Refresh status |
 
-Copy IP shows a success state in the footer and next to the identity IP for
-about 1.6 s (driven by second ticks); Refresh pulses its icon for about 1.5 s.
-The panel animates its entrance, eases the hero accent and plays the banner
-when the phase changes, runs the five-bar wave while connecting/disconnecting,
-and highlights Families segments on hover. Frame
-ticks are requested only while an animation is active and stop when idle.
-Long IPv6 addresses are middle-truncated in the display but copied in full.
-There is no `warp-cli` version caption in the panel.
-
-Every panel action is written to the `warp.command` state channel and
-executed by the service. The panel is a renderer and command writer only: no
-`runAsync`, no HTTP, no CLI calls and no `warp.status` writes.
-
-### Families limitation
-
-`warp-cli dns families` is write-only: the client exposes no getter, so the
-plugin cannot read the current value. The segmented control therefore always
-shows the Cloudflare default **Malware** until a value is set in the current
-service session. A selection applies immediately and can only be set, never
-reverted from the plugin — there is no way back to the previous value, and
-after a restart the plugin shows *Malware* again even though the client keeps
-the last applied setting.
+Toggle is ignored while the service reports `busy`, and the tile is disabled while
+`warp-cli` is unavailable or a command is in flight.
 
 ### Warnings
 
 - Changing the **protocol** restarts the WARP tunnel and briefly drops
   connectivity; the plugin does not block the change.
-- **Register** runs the interactive `warp-cli registration new`: it waits up
-  to 30 seconds for the browser sign-in. A timeout is reported as a
-  "registration still waiting for the sign-in" notification, **not** as an
-  error; once the sign-in completes, the next poll marks the client as
-  registered.
+- **Register** runs the interactive `warp-cli registration new`: it waits up to
+  30 seconds for the browser sign-in. A timeout is reported as a "registration
+  still waiting for the sign-in" notification, **not** as an error; once the
+  sign-in completes, the next poll marks the client as registered.
 
 ## IPC
 
-The service entry implements `onIpc` and watches the `warp.command` state channel.
-Both paths route into one `dispatch(action, fields, source)` handler with the same
-whitelist validation.
+The service entry implements `onIpc` and also watches the `warp.command` state
+channel. Both paths route into one dispatch with the same whitelist validation.
+The IPC payload is a single string; a missing argument arrives as `""`, and any
+rejected value is logged as a warning and skipped — no CLI call, no state change.
+
+| Action | Argument | What it does |
+|--------|----------|--------------|
+| `toggle` | — | Disconnect when connected/connecting, otherwise connect. |
+| `connect` | — | `warp-cli connect`. |
+| `disconnect` | — | `warp-cli disconnect`. |
+| `refresh` | — | Out-of-order status + settings + registration + trace probe. |
+| `register` | — | Interactive `registration new` (up to 30 s browser wait). |
+| `set-mode` | one of `warp`, `doh`, `warp+doh`, `dot`, `warp+dot`, `proxy`, `tunnel_only` (exact case) | `warp-cli mode <M>`; refused while the client reports a locked switch. |
+| `set-families` | one of `off`, `malware`, `full` (exact case) | `warp-cli dns families <F>`. |
+| `set-protocol` | `wireguard` or `masque`, any case | `warp-cli tunnel protocol set <P>`. |
 
 ```bash
-# Out-of-order status + settings + registration + trace refresh
 noctalia msg plugin code-warlord/cloudflare-warp:service all refresh
-# Toggle: disconnect when connected/connecting, otherwise connect
 noctalia msg plugin code-warlord/cloudflare-warp:service all toggle
-# Explicit connect / disconnect
 noctalia msg plugin code-warlord/cloudflare-warp:service all connect
 noctalia msg plugin code-warlord/cloudflare-warp:service all disconnect
-# Interactive registration (waits for the browser sign-in, up to 30s)
 noctalia msg plugin code-warlord/cloudflare-warp:service all register
-# Mutations (payload is always a string; missing argument arrives as "")
 noctalia msg plugin code-warlord/cloudflare-warp:service all set-mode warp+doh
 noctalia msg plugin code-warlord/cloudflare-warp:service all set-families malware
 noctalia msg plugin code-warlord/cloudflare-warp:service all set-protocol MASQUE
 ```
 
-IPC events: `toggle`, `connect`, `disconnect`, `refresh`, `register`, `set-mode`,
-`set-families`, `set-protocol`.
+UI entries do not call IPC from scripts; they write a table (`seq`, `action`,
+optional `mode`/`families`/`protocol`, optional `source`) to the `warp.command`
+channel and the service consumes it.
 
-Valid mode values: `warp`, `doh`, `warp+doh`, `dot`, `warp+dot`, `proxy`, `tunnel_only`.
-Valid families values: `off`, `malware`, `full`. Valid protocol values: `wireguard`,
-`masque` (any case). Anything else is logged as a warning and skipped — no CLI call,
-no state change.
+## Known limitations
 
-UI entries do not call IPC from scripts; they write a table to the `warp.command`
-channel (`seq`, `action`, optional `mode`/`families`/`protocol`, optional `source`) and
-the service watches it.
+- **DNS Families is write-only in the CLI.** `warp-cli dns families` has no getter,
+  so the plugin cannot read the current value. The panel therefore shows the
+  Cloudflare default **Malware** until a value is set in the current service
+  session; after a restart it shows *Malware* again even though the client keeps
+  the last applied setting. A selection applies immediately and cannot be read
+  back or reverted by the plugin.
+- **Control Center tile is glyph-only.** `shortcut.setIcon` accepts Tabler glyph
+  names, not image paths, so the tile uses `cloud-lock` / `cloud-off` while the
+  bar shows custom phase SVG icons.
+- **Widget clicks:** left button opens the panel, right button toggles WARP
+  (the opposite of what you might expect from other widgets — the tile in Control
+  Center uses left click for toggle).
+- **SVG icon fallback:** if a phase SVG asset is missing at runtime, the bar
+  widget falls back to a Tabler glyph and logs a single warning per entry
+  lifetime.
+- **Trace probe transport:** on some hosts the HTTP client times out against
+  `cdn-cgi/trace` (notably when WARP itself tunnels the request), so the plugin
+  prefers an argv-only `curl` when it is on `PATH` and uses the host HTTP client
+  as a fallback. Repeated probe failures trip a circuit breaker that pauses
+  automatic probing with exponential backoff; a manual refresh runs a probe
+  immediately and clears the breaker.
+- The transitional `connecting` / `disconnecting` phase is held until a status
+  poll confirms the target (with a 30 s safety timeout), because `warp-cli`
+  returns before the tunnel actually settles.
 
 ## Network and processes
 
-- **Processes:** argv-only `warp-cli` calls (never a shell string). The service polls
-  `status` every tick, `settings list` every 5th tick and `registration show` every 10th
-  tick; mutations (`connect`, `disconnect`, `mode`, `dns families`, `tunnel protocol set`)
-  run on demand. All calls go through `noctalia.runAsync({...}, cb, timeoutMs)` with a
-  per-command timeout. Trace probing additionally runs an argv-only `curl`
-  (`--silent --show-error --fail --max-time 10 --connect-timeout 5 <fixed URL>`) when the
-  binary exists, with `noctalia.http` as fallback. No shell strings, no `grep`/`awk`,
-  no `os.execute`, no `io.popen`.
-- **Network:** one HTTPS `GET` to `https://www.cloudflare.com/cdn-cgi/trace` when
-  network-identity tracking is enabled (default: every 60 seconds, and on every
-  `refresh`, successful connect/disconnect and mode/protocol change, with a follow-up
-  probe about 5 s later). This is the plugin's only network call.
+Every `warp-cli` call is an argv vector prefixed with `--accept-tos --json
+--no-paginate --no-ansi` and launched through the argv form of
+`noctalia.runAsync(..., cb, timeoutMs)` with a per-command timeout;
+`warp-cli --version` is the only call without the base flags. Nothing is run
+through a shell, no shell strings, no `grep`/`awk`, no `os.execute`, no
+`io.popen`, no `sudo`. This is the complete list:
+
+| Call | When | Data |
+|------|------|------|
+| `warp-cli status` (argv) | every poll tick (default 3 s), on enable, on `refresh`, and right after every mutation resolves | local CLI, no payload |
+| `warp-cli settings list` (argv) | every 5th poll tick, on `refresh`, and after connect/disconnect/mode/protocol mutations | local CLI, no payload |
+| `warp-cli registration show` (argv) | every 10th poll tick, on `refresh`, and after `registration new` | local CLI, no payload |
+| `warp-cli registration new` (argv) | IPC / `warp.command` action `register` | local CLI; prints the Cloudflare sign-in URL, up to 30 s interactive wait |
+| `warp-cli connect` (argv) | action `connect`, and `toggle` when the phase is not connected/connecting | local CLI, no payload |
+| `warp-cli disconnect` (argv) | action `disconnect`, `toggle` when connected/connecting, and the panel power button during a held transition | local CLI, no payload |
+| `warp-cli mode <M>` (argv) | action `set-mode`; `<M>` whitelisted | local CLI, whitelisted mode |
+| `warp-cli dns families <F>` (argv) | action `set-families`; `<F>` whitelisted | local CLI, whitelisted families |
+| `warp-cli tunnel protocol set <P>` (argv) | action `set-protocol`; `<P>` whitelisted | local CLI, whitelisted protocol |
+| `warp-cli --version` (argv) | once on service start | local CLI, no payload |
+| `curl --silent --show-error --fail --max-time 10 --connect-timeout 5 https://www.cloudflare.com/cdn-cgi/trace` (argv) | trace probe: every `trace_interval_s` while `auto_trace`, on `refresh`, and ~5 s after a successful connect/disconnect/mode/protocol change; preferred when `curl` is on `PATH` | HTTPS GET to Cloudflare; response parsed locally for status/IP/location/edge only |
+| `noctalia.http` GET `https://www.cloudflare.com/cdn-cgi/trace` | same trace probe, fallback when `curl` is not on `PATH` | same parser, circuit breaker and in-flight guard as the curl path |
+
+The trace probe is the plugin's only network call: your public egress IP is sent
+to Cloudflare as part of the standard `cdn-cgi/trace` response exchange. No other
+subprocesses, shells or network endpoints are used.
+
+![Plugin preview](thumbnail.webp)
+
+More states and the full visual system live in the source repository
+(`docs/DESIGN-PANEL.md`).
 
 ## Icons and trademarks
 
-`assets/icons/` contains original stylized WARP status icons (color and mono variants).
-They are not the official Cloudflare logo and are not copied from Cloudflare artwork.
-"Cloudflare", "WARP" and the Cloudflare logo are trademarks of Cloudflare, Inc. This
-plugin is an independent community project and is not affiliated with or endorsed by
-Cloudflare.
+`assets/icons/` contains original stylized WARP status icons (color and mono
+variants). They are not the official Cloudflare logo and are not copied from
+Cloudflare artwork. "Cloudflare", "WARP" and the Cloudflare logo are trademarks of
+Cloudflare, Inc. This plugin is an independent community project and is not
+affiliated with or endorsed by Cloudflare.
 
 ## License
 

@@ -94,6 +94,24 @@ end
 -- tooltipRows: bar tooltip as an array of { key, value } rows (SPEC 8.2).
 -- status, mode, families (only when known), protocol, ip, location,
 -- updated time and the last error message/errorCode.
+--
+-- i18n policy for tooltip values: raw CLI tokens (mode / families /
+-- errorCode) are never user-facing text, so known tokens are translated via
+-- the shared mode.* / families.* / error.* keys; unknown tokens are shown
+-- as-is instead of risking a raw translation key. Protocol names are brand
+-- labels (same in every language), presented capitalized like the panel.
+local MODE_KEYS = {
+  warp = true,
+  doh = true,
+  ["warp+doh"] = true,
+  dot = true,
+  ["warp+dot"] = true,
+  proxy = true,
+  tunnel_only = true,
+}
+local FAMILIES_KEYS = { off = true, malware = true, full = true }
+local PROTOCOL_LABELS = { wireguard = "WireGuard", masque = "MASQUE" }
+
 function M.tooltipRows(status: any): { { key: string, value: string } }
   local rows = {}
   local ok = type(status) == "table"
@@ -104,13 +122,20 @@ function M.tooltipRows(status: any): { { key: string, value: string } }
   })
   if ok then
     if type(status.mode) == "string" and status.mode ~= "" then
-      table.insert(rows, { key = noctalia.tr("widget.tooltip.mode"), value = status.mode })
+      local modeLabel = if MODE_KEYS[status.mode] then noctalia.tr("mode." .. status.mode) else status.mode
+      table.insert(rows, { key = noctalia.tr("widget.tooltip.mode"), value = modeLabel })
     end
     if type(status.families) == "string" and status.families ~= "" and status.families ~= "unknown" then
-      table.insert(rows, { key = noctalia.tr("widget.tooltip.families"), value = status.families })
+      local familiesLabel = if FAMILIES_KEYS[status.families]
+        then noctalia.tr("families." .. status.families)
+        else status.families
+      table.insert(rows, { key = noctalia.tr("widget.tooltip.families"), value = familiesLabel })
     end
     if type(status.protocol) == "string" and status.protocol ~= "" and status.protocol ~= "unknown" then
-      table.insert(rows, { key = noctalia.tr("widget.tooltip.protocol"), value = status.protocol })
+      table.insert(rows, {
+        key = noctalia.tr("widget.tooltip.protocol"),
+        value = PROTOCOL_LABELS[status.protocol] or status.protocol,
+      })
     end
     local trace = type(status.trace) == "table" and status.trace or {}
     if type(trace.ip) == "string" and trace.ip ~= "" then
@@ -129,9 +154,14 @@ function M.tooltipRows(status: any): { { key: string, value: string } }
     local message = type(status.message) == "string" and status.message or ""
     local errorCode = type(status.errorCode) == "string" and status.errorCode or ""
     if message ~= "" or errorCode ~= "" then
+      -- Prefer the translated error text over a raw errorCode; the closed
+      -- service-side code set guarantees the key exists in en/ru.
+      local errorLabel = if errorCode ~= ""
+        then noctalia.tr("error." .. errorCode)
+        else message
       table.insert(rows, {
         key = noctalia.tr("widget.tooltip.error"),
-        value = message ~= "" and message or errorCode,
+        value = errorLabel,
       })
     end
   end

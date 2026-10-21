@@ -40,14 +40,14 @@
     }
   },
   "error": {
-    "cli-missing": "warp-cli not found in PATH",
-    "daemon-down": "WARP daemon is not reachable",
-    "unregistered": "WARP client is not registered",
-    "command-failed": "warp-cli command failed",
-    "timeout": "warp-cli command timed out",
-    "decode-failed": "could not parse warp-cli output",
-    "mode-locked": "Mode is locked by policy",
-    "register-pending": "Registration is waiting for the browser sign-in to finish"
+    "cli-missing": "warp-cli not found in PATH. Install the cloudflare-warp package and make sure warp-cli is in PATH.",
+    "daemon-down": "The WARP daemon is not reachable. Start the warp-svc service and press Refresh.",
+    "unregistered": "The WARP client is not registered. Press Register and complete the sign-in in your browser.",
+    "command-failed": "The warp-cli command failed. Press Refresh; run warp-cli in a terminal if it keeps failing.",
+    "timeout": "The warp-cli command timed out. Make sure the WARP daemon is running, then press Refresh.",
+    "decode-failed": "Could not parse the warp-cli output. Update cloudflare-warp to a supported version, then press Refresh.",
+    "mode-locked": "Mode is locked by a policy. Your organization controls the operation mode; change it in the Cloudflare Zero Trust dashboard.",
+    "register-pending": "Registration is waiting for the browser sign-in to finish. Complete the sign-in in your browser, then press Refresh."
   },
   "status": {
     "unavailable": "Unavailable",

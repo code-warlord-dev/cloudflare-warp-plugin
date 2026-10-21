@@ -631,7 +631,10 @@ local function heroCard()
     else "—"
   local subtitle = noctalia.tr("panel.hero.subtitle." .. status.phase)
   local errorCode = type(status.errorCode) == "string" and status.errorCode or ""
-  if status.phase == "unavailable" and errorCode ~= "" then
+  -- unavailable and unknown never carry a useful phase sentence when an
+  -- errorCode is set, so the translated error text replaces the subtitle
+  -- there; the "error" phase folds error + detail into the same row.
+  if (status.phase == "unavailable" or status.phase == "unknown") and errorCode ~= "" then
     subtitle = noctalia.tr("error." .. errorCode)
   elseif status.phase == "error" then
     -- Fold the error into the subtitle row so the card keeps a stable height.

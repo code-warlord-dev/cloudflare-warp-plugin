@@ -10,13 +10,13 @@
 
 | Поле | Значение |
 |------|----------|
-| **Plugin version** | `0.4.3` — **released**, tag `v0.4.3` |
-| **Roadmap phase** | Phase 3 — Panel **done** (0.4.0 + redesign v2 0.4.1 + padding 0.4.2 + animated banner 0.4.3) |
-| **Branch** | `main` |
+| **Plugin version** | `0.5.0` (release via PR #8) |
+| **Roadmap phase** | Phase 4 — Polish & i18n **done**; далее Phase 5 — Public 1.0.0 |
+| **Branch** | `feat/phase-4-polish` |
 | **Remote** | https://github.com/code-warlord-dev/cloudflare-warp-plugin |
 | **Last merge** | `d3d2f0c` Merge PR #7 — animated banner v0.4.3 (tag `v0.4.3` pushed) |
 | **Blockers** | none |
-| **Next action** | Phase 4 — Polish & i18n (0.5.0); владельца: live-toggle K-18, досъёмка скриншотов K-17, удаление устаревшего source `warpqa` (K-19) |
+| **Next action** | Merge PR #8 → tag `v0.5.0`; владельца: ru/en переключение языка (MANUAL), live-toggle K-18, досъёмка K-17, `plugins source remove warpqa` (K-19); затем Phase 5 |
 
 ---
 
@@ -73,6 +73,11 @@
 | implementer | Фикс-раунд 4: CHANGELOG приведён к фактическому strict-поведению, комментарий `panel.luau` — к реальному маппингу (`connecting→disconnect`, `disconnecting→connect`); рантайм не тронут, lint 0/0 | done | working tree |
 | qa | Live-гейты 0.4.3: lint 0/0; фикстур нет; `[warpdev] 0.4.3 enabled`; IPC refresh + panel open/close без ERR; WARP не мутировался | done | PASS |
 | orchestrator | Release 0.4.3: PR #7 merged `d3d2f0c`, tag `v0.4.3` pushed | done | `main` |
+| implementer | P4-T1 i18n+error UX: 8 error.* текстов с действием (en/ru), тултипы бара через tr(), unknown-фаза показывает ошибку, ru-заглушка families | done | `feat/phase-4-polish` |
+| docs | P4-T3 README переписан по коду (IPC-таблица vs dispatch, лимиты, сеть/процессы) | done | `feat/phase-4-polish` |
+| docs | P4-T4 `thumbnail.webp` 1280×720 64 KB из реальных скриншотов | done | `feat/phase-4-polish` |
+| reviewer | Фаза 4: APPROVE (3 minor: README-подпись исправлена, CHANGELOG/версия — релиз-преп, nit про message) | done | working tree |
+| qa | QA-матрица A–F: PASS (fixture daemon-down проверен и восстановлен byte-exact; MANUAL: переключение языка ru/en) | done | live |
 
 ---
 
@@ -133,6 +138,8 @@
 - [x] Lint 0/0 после раунда 3; production-сервис восстановлен, QA-фикстуры отсутствуют
 - [x] Release-раунд 4: reviewer REQUEST_CHANGES (CHANGELOG про Copy IP противоречил строгой `copied ~= true`; комментарий о маппинге toggle) → CHANGELOG/комментарий приведены к shipped-поведению, рантайм не тронут
 - [x] QA-гейты 0.4.3: lint 0/0, исходники чистые от фикстур, `[warpdev] 0.4.3 enabled`, IPC refresh + panel open/close без ERR, WARP не мутировался
+- [x] Phase 4 (0.5.0): аудит user-facing строк → паритет en/ru 98 ключей; 8 errorCode с текстом+действием на двух языках; тултип бара локализует mode/families/protocol и ошибку; панель показывает перевод ошибки и в `unknown`-фазе; README переписан по коду и самодостаточен; `thumbnail.webp` 1280×720/64 KB
+- [x] Phase 4 гейты: reviewer APPROVE (minor-подпись README исправлена), QA-матрица A–F PASS с фикстурой `daemon-down` (восстановлена byte-exact), lint 0/0, trust-грепы пустые; MANUAL за владельцем: переключение языка хоста ru/en
 
 
 ---

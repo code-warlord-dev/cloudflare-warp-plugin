@@ -7,6 +7,37 @@ Versioning follows [SemVer](https://semver.org/) — see [VERSIONING.md](./VERSI
 
 ---
 
+## [0.5.0] - 2026-10-21
+
+Phase 4 — Polish & i18n: the plugin is ready for community-plugins.
+
+### Added
+- `thumbnail.webp` (1280×720, 64 KB) composed from real panel captures for the
+  community-plugins catalog.
+- Store-ready plugin `README.md`: dependency and `--accept-tos` note, installation
+  (store + local path-source), configuration table, full IPC action/argument table
+  verified against the service dispatch, known limitations (Families write-only,
+  glyph-only Control Center shortcut, LMB panel / RMB toggle widget clicks),
+  the canonical subprocess/network table, and license.
+- Every error the service can emit now ships a clear en+ru message that names the
+  symptom and the recommended action (e.g. «warp-cli не найден в PATH. Установите
+  пакет cloudflare-warp …»).
+
+### Changed
+- The bar-widget tooltip localizes its rows: `mode` and `families` values render
+  through translation keys (unknown tokens are shown as-is, never as raw keys),
+  `protocol` shows the WireGuard/MASQUE brand labels, and the Error row shows the
+  translated error text instead of a raw code.
+- The panel hero surfaces the translated error text for the `unknown` phase as well
+  (the `decode-failed` case), not only when the CLI is unavailable.
+- Russian translation quality: replaced the leftover English placeholder
+  `widget.tooltip.families` with «DNS-фильтрация»; en/ru key parity holds at 98 keys.
+
+### Fixed
+- No user-facing surface can render a raw translation key or CLI token for the
+  covered states; trust surface unchanged (argv-only subprocesses, single fixed
+  HTTPS trace endpoint, no sudo/secrets).
+
 ## [0.4.3] - 2026-10-21
 
 ### Added
