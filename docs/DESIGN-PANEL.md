@@ -1,8 +1,9 @@
 # DESIGN — панель Cloudflare WARP
 
-**Статус:** `0.4.2` (PATCH, Phase 3). Панель переработана во вторую версию, прошла
-fix round владельца и получила уменьшенные боковые поля; контракт
-`warp.status` / `warp.command` и IPC не менялись.
+**Статус:** `0.4.3` (PATCH, Phase 3). Панель переработана во вторую версию, прошла
+fix round владельца, получила уменьшенные боковые поля и анимированный баннер
+(27 кадров с запечённой насыщенностью); контракт `warp.status` / `warp.command` и IPC
+не менялись.
 **Источник истины:** [`cloudflare-warp/panel.luau`](../cloudflare-warp/panel.luau),
 [`specs/phase-3-panel-redesign.md`](../specs/phase-3-panel-redesign.md).
 
@@ -13,14 +14,15 @@ fix round владельца и получила уменьшенные боко
 
 ## Галерея
 
-Скриншоты сняты на живом хосте Noctalia 5.3.0 при размере панели 400×672; close-up
-вырезаны из тех же кадров.
+Два кадра — `panel-connected.png` и `panel-hero-closeup.png` — пересняты под 0.4.3
+(анимированный баннер 160 px, панель 400×734). Остальные шесть всё ещё показывают
+раскладку 0.4.1 и ведутся как K-17 в `STATE.md`.
 
 | Скриншот | Что показывает |
 |----------|----------------|
-| <img src="images/panel-connected.png" width="190" alt="Панель: подключено"> | **Connected.** Полноцветный баннер, зелёный hero, крупный статус, power в режиме отключения. |
-| <img src="images/panel-disconnected.png" width="190" alt="Панель: отключено"> | **Disconnected.** Приглушённый баннер, оранжевый hero, power — primary. |
-| <img src="images/panel-connecting.png" width="190" alt="Панель: подключение"> | **Connecting.** Баннер с opacity 0.65, циановый hero, progress-полоса, loader в header, контролы dim. |
+| <img src="images/panel-connected.png" width="190" alt="Панель: подключено"> | **Connected.** Баннер остановлен на последнем кадре (полная насыщенность), зелёный hero, крупный статус, power в режиме отключения. |
+| <img src="images/panel-disconnected.png" width="190" alt="Панель: отключено"> | **Disconnected.** После перехода из connected баннер откатывается к первому кадру (20 % цвета, не ч/б); приглушённый красно-оранжевый hero, power — primary. |
+| <img src="images/panel-connecting.png" width="190" alt="Панель: подключение"> | **Connecting.** Баннер играет вперёд, циановый hero, живая wave-полоса, пульсирующий Refresh, контролы dim. |
 | <img src="images/panel-families-selected.png" width="190" alt="Панель: выбран Malware"> | **Families selected.** Cyan низкой интенсивности; выбранный сегмент виден всегда. |
 | <img src="images/panel-unknown-selects.png" width="190" alt="Панель: неизвестные Mode и Protocol"> | **Unknown selects.** Mode и Protocol показывают честный placeholder, а не выдуманное значение. |
 | <img src="images/panel-copied.png" width="190" alt="Панель: IP скопирован"> | **Copied.** Success-состояние в footer и в строке identity; IPv6 в строке сокращён, в буфере — полный. |
@@ -31,19 +33,19 @@ fix round владельца и получила уменьшенные боко
 
 ```
 root column (gap=0, paddingH=-14, paddingV=0, align=stretch, flexGrow=1)
-├─ banner-wrap column (height=82, paddingV=-14)
-│   └─ ui.image 400×96, fit=cover, radius=12, opacity по фазе × entrance
+├─ banner-wrap column (height=146, paddingV=-14)
+│   └─ ui.image 400×160, fit=cover, radius=12, path = кадр секвенции, opacity = entrance
 ├─ header row (paddingH=16, paddingV=8, gap=8)
 │   ├─ glyph cloud-lock 18, brand-orange
 │   ├─ label «Cloudflare WARP» 15 bold
 │   ├─ spacer flexGrow=1
-│   ├─ Refresh (ghost, refresh | loader-2, pulse во время фидбека)
+│   ├─ Refresh (ghost, refresh, pulse во время фидбека)
 │   └─ Close (ghost, close)
 ├─ content-body column (flexGrow=1, gap=10, paddingH=16, paddingV=6, opacity=entrance)
 │   ├─ hero card (radius=16, paddingH=16, paddingV=12)
-│   │   ├─ row: status glyph 22 + status 21 bold + power
+│   │   ├─ row: status icon (connected — glyph shield-check, иначе phase glyph) + status 21 bold + power
 │   │   ├─ row: subtitle 12 (до 2 строк) + «Обновлено HH:MM» 11
-│   │   └─ connecting/disconnecting: progress 3 px
+│   │   └─ connecting/disconnecting: wave из 5 полос 14 px
 │   ├─ controls row (gap=10): Mode | Protocol, два равных столбца
 │   ├─ optional caption: mode locked
 │   ├─ families: label + segmented track (без caption)
@@ -58,28 +60,33 @@ root column (gap=0, paddingH=-14, paddingV=0, align=stretch, flexGrow=1)
 ```
 
 `ui.scroll` не используется: хост всегда рисует scrollbar, если scroll-контейнер
-присутствует. Высота 672 подобрана под самый высокий штатный набор, а `flexGrow=1`
-у content-body прижимает footer к низу, когда остаётся запас.
+присутствует. Высота 734 подобрана под самый высокий штатный набор с баннером 160 px,
+а `flexGrow=1` у content-body прижимает footer к низу, когда остаётся запас.
 
 Баннер выходит за поля хоста: root отменяет горизонтальный inset хоста
 (`paddingH = -14`), поэтому единственный боковой отступ — внутренние 16 px, а карточки
-занимают 368 px из 400. Wrapper высотой 82 px получает `paddingV = -14`; изображение
-400×96 начинается в точке (0,0) панели и заканчивается ровно на нижней границе wrapper.
-Радиус изображения 12 совпадает с радиусом панели; нижний alpha-fade зашит в PNG.
-Версия `warp-cli` в панели не показывается, дублирующей кнопки закрытия нет.
+занимают 368 px из 400. Wrapper высотой 146 px получает `paddingV = -14`; изображение
+400×160 начинается в точке (0,0) панели и заканчивается ровно на нижней границе wrapper.
+Радиус изображения 12 совпадает с радиусом панели. Версия `warp-cli` в панели не
+показывается, дублирующей кнопки закрытия нет.
 
 ## Фазы и акценты
 
-| Фаза | Акцент | Баннер | Opacity | Подзаголовок (ru) |
-|------|--------|--------|---------|-------------------|
-| `connected` | success | color | 1.0 | Трафик защищён |
-| `disconnected` | brand-orange | idle | 1.0 | Трафик идёт напрямую |
-| `connecting` | cyan | color | 0.65 | Защищаем трафик… |
-| `disconnecting` | cyan | color | 0.65 | Снимаем защиту… |
-| `unregistered` | warning | idle | 0.9 | Клиент не зарегистрирован |
-| `error` | danger | idle | 0.85 | Команда завершилась ошибкой |
-| `unavailable` | danger | idle | 0.85 | warp-cli не найден в PATH |
-| `unknown` | neutral | idle | 0.85 | Состояние неизвестно |
+| Фаза | Акцент | Анимация баннера | Подзаголовок (ru) |
+|------|--------|------------------|-------------------|
+| `connected` | success | forward на open/connect, статично на кадре 26 | Трафик защищён |
+| `disconnected` | ember | статично на кадре 0 (20 % цвета) при open; reverse до кадра 0 при переходе из connected | Трафик идёт напрямую |
+| `connecting` | cyan | forward, статично на кадре 26 | Защищаем трафик… |
+| `disconnecting` | cyan | reverse до кадра 0 | Снимаем защиту… |
+| `unregistered` | warning | статично на кадре 0 при open | Клиент не зарегистрирован |
+| `error` | danger | статично на кадре 0 при open | Команда завершилась ошибкой |
+| `unavailable` | danger | статично на кадре 0 при open | warp-cli не найден в PATH |
+| `unknown` | neutral | статично на кадре 0 при open | Состояние неизвестно |
+
+Баннер соответствует фазе: при открытии панели с живым туннелем
+(connected/connecting) он играет вперёд до полной насыщенности, а при выключенном
+WARP или ошибке сразу показан кадр 0 (20 % цвета) без анимации. Насыщенность
+уменьшается только при переходе из connected/connecting в disconnecting/disconnected.
 
 Hero fill — акцент с alpha `14`, border — с alpha `66`. Power: для `connected`,
 `connecting` и `disconnecting` — `outline` и «Отключить WARP», иначе `primary` и
@@ -93,16 +100,19 @@ Hero fill — акцент с alpha `14`, border — с alpha `66`. Power: дл�
 | Что | Как |
 |-----|-----|
 | Вход панели | 420 ms, `easeOutCubic` для opacity баннера и content-body |
-| Смена фазы | баннер коротко проседает до 0.35, затем плавно проявляется новый ассет |
-| Акцент и opacity баннера | экспоненциальное приближение, tau 140 ms / 180 ms |
-| Connecting / disconnecting | progress-полоса 0.12…1.0 с периодом 1600 ms; баннер пульсирует ±0.06 с периодом 2200 ms; контролы и трек Families — opacity 0.55 |
+| Баннер: open / connect | секвенция 0 → 26, 100 ms на кадр (родная задержка GIF), стоп на кадре 26; при open в off-фазе — сразу статичный кадр 0 |
+| Баннер: disconnect | секвенция 26 → 0 (или от текущего кадра), стоп на кадре 0; насыщенность гаснет вместе с кадрами |
+| Акцент hero | экспоненциальное приближение, tau 140 ms |
+| Connecting / disconnecting | wave из 5 полос: высота 4–14 px и opacity 0.45–1.0, синусоида со сдвигом фаз, период 900 ms; контролы и трек Families — opacity 0.55 |
 | Refresh | header-иконка пульсирует между 0.55 и 1.0 с периодом 650 ms около 1.5 s |
 | Families hover | заполнение и рамка сегмента плавно усиливаются, tau 70 ms |
 | Кнопки | нативный hover/press хоста, без собственных анимаций |
 
 Анимации идут на frame ticks (шаг 33 ms) через `panel.setNeedsFrameTick(true)` +
 `onFrameTick(deltaMs)`; тики запрашиваются только пока есть незавершённая анимация и
-выключаются в idle и при закрытии. Copy/refresh-фидбек обслуживают second ticks.
+выключаются в idle и при закрытии. Кадр секвенции меняется каждые 100 ms (каждые 10
+тиков) — хост синхронно перезагружает WebP по новому `path`. Copy/refresh-фидбек
+обслуживают second ticks.
 
 ## Цветовая система
 
@@ -113,7 +123,8 @@ Hero fill — акцент с alpha `14`, border — с alpha `66`. Power: дл�
 | surface track | `surface_variant/0.45` | Трек segmented-контрола Families. |
 | border card | `outline/0.35` | Рамки карточек. |
 | border track | `outline/0.25` | Трек Families, separator. |
-| brand orange | `#F6821F` | Glyph в header, акцент disconnected. |
+| brand orange | `#F6821F` | Glyph в header. |
+| ember | `#C75B43` | Приглушённый красно-оранжевый акцент disconnected. |
 | brand warm | `#FFA53B` | Тёплый highlight, только малые площади. |
 | cyan | `#59D6FF` | Акцент connecting/disconnecting, data-glyph, выбранный Families. |
 | success | `#3BE3A3` | Акцент connected, подтверждение копирования. |
@@ -132,12 +143,36 @@ Hero-акцент интерполируется между фазами, поэ
 
 | Актив | Размер | Использование |
 |-------|--------|---------------|
-| `assets/hero-banner-color.png` | 720×192 (2×) | connected; connecting/disconnecting с opacity 0.65. |
-| `assets/hero-banner-idle.png` | 720×192 (2×) | disconnected, unregistered, error, unavailable, unknown; opacity 0.9/0.85. |
-| `assets/hero-banner.jpeg` | исходник | Не используется в UI; хранится как источник для пересборки PNG. |
+| `assets/banner/frame-00.webp` … `frame-26.webp` | 800×320, 27 шт. | Кадры анимации; `frame-00` — 20 % насыщенности, `frame-26` — полная. Аспект 2.5:1 точно совпадает с 400×160, поэтому `fit = "cover"` не режет бока; `radius = 12`. |
+| `assets/wGjQl.gif` | 640×298, 30 кадров | Исходник владельца; в UI не загружается, хранится для пересборки секвенции. |
+| `assets/hero-banner.jpeg`, `hero-banner-color.png`, `hero-banner-idle.png` | — | Легаси v2 (0.4.1); панелью больше не используются. |
 
-Оба PNG уже содержат нижний alpha-fade (последние 80 px из 192). В панели изображение
-рисуется как 400×96 с `fit = "cover"` и `radius = 12`.
+Секвенция собрана из coalesced-кадров GIF с сохранением **полной ширины** 640 px:
+crop 640×256+0+0, resize 800×320 (аспект 2.5:1 = 400×160, бокового кропа нет), затем
+насыщенность `sat = 20 + 80*i/26` (%). Таймкод в правом нижнем углу исходника
+замазывается клонированным патчем с мягкими краями до ресайза. Используются кадры
+0…26 — на три меньше, чем в GIF, по просьбе владельца; рампа идёт от 20 % до
+100 %, поэтому reverse останавливается на первом кадре с остаточным цветом, а не на
+полностью ч/б картинке.
+В каждый кадр запечён нижний alpha-fade: последние 56 px из 320 (28 px на экране)
+плавно уходят в прозрачность, поэтому баннер без шва переходит в тело панели. Хост не
+умеет проигрывать GIF, тонировать `ui.image` и рисовать градиент поверх картинки,
+поэтому и насыщенность, и fade запечены в кадры, а анимация — это смена `path` по frame
+ticks.
+
+## Иконки
+
+| Иконка | Размер | Использование |
+|--------|--------|---------------|
+| `shield-check` (Tabler) | 22 | Hero в `connected`, цвет success `#3BE3A3`: однозначный OK-щит в акценте фазы. |
+| `cloud-lock`, `refresh`, `close` | 18 | Header: бренд, обновление, закрытие. |
+| `power` | 18 | Hero, кнопка подключения/отключения. |
+| `world`, `copy`, `check`, `user-plus`, `settings` | 14 | Identity, фидбек копирования, Register, footer. |
+
+`loader-2` в панели не используется: статичная дуга без вращения читается как обрезанное
+кольцо. Busy выражают wave-полоса, dim и дизейбл контролов; Refresh остаётся
+доступным как recovery-действие и сигналит фидбек opacity-пульсом. Собственные
+двухцветные SVG для hero не нужны — нативный glyph наследует акцент фазы.
 
 ## Типографика, отступы, радиусы
 
@@ -150,7 +185,7 @@ Hero-акцент интерполируется между фазами, поэ
 | Значения и subtitle | 12 |
 | Captions, updated, trace | 11 |
 | Footer feedback text | 13 |
-| Glyphs | 18 header, 22 hero, 14 secondary |
+| Glyphs | 18 header, 22 hero (connected — `shield-check`), 14 secondary |
 | Side gutters | 16 (root cancels the host's 14 px horizontal inset) |
 | Card / control width | 368 inside the 400 px panel |
 | Header padding | 16 по горизонтали, 8 по вертикали |
@@ -177,20 +212,26 @@ Hero-акцент интерполируется между фазами, поэ
 4. **Комфортные цели.** Интерактивные элементы не меньше 32 px; selects и сегменты —
    38 px; клик по Families работает по всей площади сегмента.
 5. **Без прокрутки.** `ui.scroll` не используется, потому что хост рисует scrollbar
-   всегда; высота 672 вмещает штатный набор, footer прижат через `flexGrow`.
+   всегда; высота 734 вмещает штатный набор, footer прижат через `flexGrow`.
 6. **Обратная связь.** Copy показывает success около 1.6 с в footer и в строке IP;
-   Refresh — пульсирующий loader около 1.5 с. Оба окна обслуживаются second ticks,
-   которые выключаются, когда оба окна истекли.
+   Refresh — пульсирующая иконка около 1.5 с и доступен даже при busy (recovery).
+   Оба окна обслуживаются second ticks, которые выключаются, когда оба окна истекли.
 7. **Длинный IPv6.** В строке показывается середина, сокращённая до ~28 символов;
    в буфер обмена всегда попадает полный адрес.
 8. **Только i18n.** В `panel.luau` нет literal user-facing строк — только `noctalia.tr`
    (WireGuard/MASQUE — имена протоколов).
 9. **Анимации не мешают.** Все переходы короткие, тики останавливаются в idle; панель
    остаётся мгновенно читаемой при открытии.
+10. **Identity живая.** После успешных connect/disconnect и смены Mode/Protocol сервис
+    пробует `cdn-cgi/trace` сразу и повторно через ~5 с; IP, location, edge, WARP и время
+    trace обновляются сами, панель только отображает `warp.status`.
+11. **Фаза не прыгает.** «Подключение…» / «Отключение…» держатся, пока поллинг не увидит
+    целевой статус (safety timeout 30 с), поэтому hero не мигает «Отключено» между
+    командой и подключением.
 
 ## Особенности хоста
 
-- **Геометрия.** `400×672` и `floating` объявлены в манифесте, но размером и позицией
+- **Геометрия.** `400×734` и `floating` объявлены в манифесте, но размером и позицией
   владеет хост. Изменения `width`/`height` применяются только после
   disable/enable плагина — `config-reload` их не подхватывает. Пользовательский
   `[plugin_settings] panel_placement` может переопределить placement на лету; на

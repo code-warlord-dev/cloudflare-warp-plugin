@@ -46,6 +46,12 @@ local traceSentAt = 0
 
 local tick = 0
 local lastTraceAt = 0
+local pendingTraceAt = 0
+-- A connect/disconnect mutation returns before the tunnel settles, so the
+-- service holds the transitional phase until a status poll observes the target
+-- (or the hold expires) instead of letting the poll regress to the old phase.
+local transitionTarget = nil -- "connected" | "disconnected" | nil
+local transitionUntilMs = 0
 local traceFailCount = 0
 local traceBackoffLevel = 0
 local traceSuspendedUntil = 0
@@ -111,8 +117,108 @@ local function publish(patch)
   return changed
 end
 
+local function transitionPhaseName()
+  return transitionTarget == "connected" and "connecting" or "disconnecting"
+end
+
+local function beginTransition(target)
+  transitionTarget = target
+  transitionUntilMs = noctalia.nowMs() + 30000
+end
+
+local function endTransition()
+  transitionTarget = nil
+  transitionUntilMs = 0
+end
+
+local refreshIdentitySoon -- defined below, after refreshTrace
+
+-- While a connect/disconnect is settling, polls that still report the old
+-- phase must not regress the UI; the target phase or a terminal state ends
+-- the hold. Without this the panel flashed connecting -> disconnected ->
+-- connected because warp-cli returns before the tunnel is up.
+local function publishPolledPhase(phase)
+  if transitionTarget ~= nil then
+    if phase == transitionTarget then
+      endTransition()
+      publish({
+        phase = phase,
+        busy = false,
+        available = true,
+        daemonOk = true,
+        errorCode = "",
+        message = "",
+      })
+      noctalia.log("cloudflare-warp: transition confirmed phase=" .. phase)
+      refreshIdentitySoon()
+      return
+    end
+    local source = if transitionTarget == "connected" then "disconnected" else "connected"
+    if (phase == source or phase == transitionPhaseName())
+        and noctalia.nowMs() < transitionUntilMs then
+      publish({
+        phase = transitionPhaseName(),
+        busy = true,
+        available = true,
+        daemonOk = true,
+        errorCode = "",
+        message = "",
+      })
+      return
+    end
+    endTransition()
+    publish({
+      phase = phase,
+      busy = false,
+      available = true,
+      daemonOk = true,
+      errorCode = "",
+      message = "",
+    })
+    noctalia.log("cloudflare-warp: transition ended phase=" .. phase)
+    return
+  end
+  publish({
+    phase = phase,
+    available = true,
+    daemonOk = true,
+    errorCode = "",
+    message = "",
+  })
+end
+
+-- True while a settling transition should keep the transitional phase.
+local function holdTransition()
+  if transitionTarget == nil then
+    return false
+  end
+  if noctalia.nowMs() < transitionUntilMs then
+    publish({
+      phase = transitionPhaseName(),
+      busy = true,
+      available = true,
+      errorCode = "",
+      message = "",
+    })
+    return true
+  end
+  endTransition()
+  return false
+end
+
+local function clearStaleBusy()
+  if actionInFlight or transitionTarget ~= nil then
+    return
+  end
+  local cur = noctalia.state.get(State.CHANNEL_STATUS) or State.defaultStatus()
+  if cur.busy == true then
+    publish({ busy = false })
+    noctalia.log("cloudflare-warp: cleared stale busy flag")
+  end
+end
+
 local function refreshStatus()
-  if statusInFlight then
+  if statusInFlight or actionInFlight then
     return
   end
   if not noctalia.commandExists("warp-cli") then
@@ -129,9 +235,13 @@ local function refreshStatus()
   local ok = Commands.run(Commands.statusArgv(), function(result)
     statusInFlight = false
     if result.timedOut then
+      if holdTransition() then
+        return
+      end
       local phase, errorCode, daemonOk = Parse.classifyError(result)
       publish({
         phase = phase,
+        busy = false,
         available = true,
         errorCode = errorCode,
         message = Parse.truncate(result.stderr, 300),
@@ -139,9 +249,13 @@ local function refreshStatus()
       return
     end
     if result.exitCode ~= 0 then
+      if holdTransition() then
+        return
+      end
       local phase, errorCode, daemonOk = Parse.classifyError(result)
       local patch = {
         phase = phase,
+        busy = false,
         available = true,
         errorCode = errorCode,
         message = Parse.truncate(result.stderr, 300),
@@ -154,21 +268,20 @@ local function refreshStatus()
     end
     local phase, decodeFailed = Parse.parseStatus(result.stdout)
     if decodeFailed then
+      if holdTransition() then
+        return
+      end
+      endTransition()
       publish({
         phase = "unknown",
+        busy = false,
         available = true,
         daemonOk = true,
         errorCode = "decode-failed",
         message = Parse.truncate(result.stderr, 300),
       })
     else
-      publish({
-        phase = phase,
-        available = true,
-        daemonOk = true,
-        errorCode = "",
-        message = "",
-      })
+      publishPolledPhase(phase)
     end
   end, 8000)
   if not ok then
@@ -264,26 +377,31 @@ local function refreshTrace(bypassSuspension)
   end
   traceInFlight = true
   traceSentAt = now
-  noctalia.http({ url = TRACE_URL }, function(res)
+
+  local function traceFailed(status, detail)
     traceInFlight = false
-    local now = noctalia.nowMs()
-    local elapsed = now - traceSentAt
-    if elapsed > settings.trace_interval_s * 1000 then
+    local failedAt = noctalia.nowMs()
+    traceFailCount += 1
+    if traceFailCount % 5 == 1 then
+      noctalia.log("cloudflare-warp: trace failed status=" .. tostring(status)
+        .. " detail=" .. Parse.truncate(detail or "", 160))
+    end
+    if traceFailCount >= TRACE_FAIL_SUSPEND_AT and failedAt >= traceSuspendedUntil then
+      local waitS = math.floor(settings.trace_interval_s * 10 * 2 ^ math.min(traceBackoffLevel, TRACE_BACKOFF_MAX))
+      traceSuspendedUntil = failedAt + waitS * 1000
+      traceBackoffLevel = math.min(traceBackoffLevel + 1, TRACE_BACKOFF_MAX)
+      noctalia.log("cloudflare-warp: trace suspended after " .. traceFailCount
+        .. " failures, retry in " .. waitS .. "s")
+    end
+  end
+
+  local function traceSucceeded(body)
+    traceInFlight = false
+    if noctalia.nowMs() - traceSentAt > settings.trace_interval_s * 1000 then
       return
     end
-    local body = res.body
-    if res.ok ~= true or type(body) ~= "string" or body == "" then
-      traceFailCount += 1
-      if traceFailCount % 5 == 1 then
-        noctalia.log("cloudflare-warp: trace failed status=" .. tostring(res.status))
-      end
-      if traceFailCount >= TRACE_FAIL_SUSPEND_AT and now >= traceSuspendedUntil then
-        local waitS = math.floor(settings.trace_interval_s * 10 * 2 ^ math.min(traceBackoffLevel, TRACE_BACKOFF_MAX))
-        traceSuspendedUntil = now + waitS * 1000
-        traceBackoffLevel = math.min(traceBackoffLevel + 1, TRACE_BACKOFF_MAX)
-        noctalia.log("cloudflare-warp: trace suspended after " .. traceFailCount
-          .. " failures, retry in " .. waitS .. "s")
-      end
+    if type(body) ~= "string" or body == "" then
+      traceFailed(0)
       return
     end
     traceFailCount = 0
@@ -293,11 +411,40 @@ local function refreshTrace(bypassSuspension)
     publish({
       trace = { warp = t.warp, ip = t.ip, loc = t.loc, colo = t.colo, atMs = noctalia.nowMs() },
     })
+  end
+
+  -- The host's noctalia.http times out on this platform (curl 28, 0 bytes),
+  -- so prefer argv-only curl and keep http as a fallback for hosts without it.
+  if noctalia.commandExists("curl") then
+    local launched = Commands.run(Commands.traceArgv(TRACE_URL), function(result)
+      if result.timedOut or result.exitCode ~= 0 then
+        traceFailed(tonumber(result.exitCode) or 0, result.stderr)
+      else
+        traceSucceeded(result.stdout)
+      end
+    end, 12000)
+    if launched then
+      return
+    end
+    traceInFlight = false
+  end
+  noctalia.http({ url = TRACE_URL }, function(res)
+    if res.ok ~= true then
+      traceFailed(res.status, "http")
+      return
+    end
+    traceSucceeded(res.body)
   end)
 end
 
-local function handleMutationResult(result)
+refreshIdentitySoon = function()
+  refreshTrace(true)
+  pendingTraceAt = noctalia.nowMs() + 5000
+end
+
+local function handleMutationResult(result, refreshIdentity)
   if result.timedOut then
+    endTransition()
     publish({
       busy = false,
       phase = "error",
@@ -307,6 +454,7 @@ local function handleMutationResult(result)
     return
   end
   if result.exitCode ~= 0 then
+    endTransition()
     local phase, errorCode, daemonOk = Parse.classifyError(result)
     local patch = {
       busy = false,
@@ -320,9 +468,20 @@ local function handleMutationResult(result)
     publish(patch)
     return
   end
+  if refreshIdentity == true and transitionTarget ~= nil then
+    -- The CLI returns before the tunnel is up: keep the held transitional
+    -- phase and busy state until a status poll confirms the target.
+    refreshStatus()
+    refreshSettings()
+    refreshIdentitySoon()
+    return
+  end
   publish({ busy = false })
   refreshStatus()
   refreshSettings()
+  if refreshIdentity == true then
+    refreshIdentitySoon()
+  end
 end
 
 local function doConnect()
@@ -341,6 +500,7 @@ local function doConnect()
     return
   end
   actionInFlight = true
+  beginTransition("connected")
   publish({
     busy = true,
     phase = "connecting",
@@ -350,10 +510,11 @@ local function doConnect()
   })
   local ok = Commands.run(Commands.connectArgv(), function(result)
     actionInFlight = false
-    handleMutationResult(result)
+    handleMutationResult(result, true)
   end, 15000)
   if not ok then
     actionInFlight = false
+    endTransition()
     publish({
       busy = false,
       phase = "error",
@@ -379,6 +540,7 @@ local function doDisconnect()
     return
   end
   actionInFlight = true
+  beginTransition("disconnected")
   publish({
     busy = true,
     phase = "disconnecting",
@@ -388,10 +550,11 @@ local function doDisconnect()
   })
   local ok = Commands.run(Commands.disconnectArgv(), function(result)
     actionInFlight = false
-    handleMutationResult(result)
+    handleMutationResult(result, true)
   end, 15000)
   if not ok then
     actionInFlight = false
+    endTransition()
     publish({
       busy = false,
       phase = "error",
@@ -448,6 +611,7 @@ local function doSetMode(mode)
     publish({ busy = false, mode = mode })
     refreshStatus()
     refreshSettings()
+    refreshIdentitySoon()
   end, 15000)
   if not ok then
     actionInFlight = false
@@ -522,6 +686,7 @@ local function doSetProtocol(protocol)
     end
     publish({ busy = false, protocol = protocol })
     refreshSettings()
+    refreshIdentitySoon()
   end, 15000)
   if not ok then
     actionInFlight = false
@@ -670,6 +835,7 @@ end
 
 function update()
   tick += 1
+  clearStaleBusy()
   refreshStatus()
   if tick % SETTINGS_EVERY == 0 then
     refreshSettings()
@@ -678,6 +844,16 @@ function update()
     refreshRegistration()
   end
   local now = noctalia.nowMs()
+  if pendingTraceAt > 0 and now >= pendingTraceAt then
+    if traceInFlight then
+      -- A probe is already running: refreshTrace(true) would be dropped by its
+      -- in-flight guard. Re-arm the delayed probe so a later poll retries it.
+      pendingTraceAt = now + 5000
+    else
+      pendingTraceAt = 0
+      refreshTrace(true)
+    end
+  end
   if settings.auto_trace and (now - lastTraceAt) >= settings.trace_interval_s * 1000 then
     if now < traceSuspendedUntil then
       -- Circuit breaker open: skip without consuming the timer slot, so the
@@ -733,6 +909,11 @@ settings = readSettings()
 noctalia.setUpdateInterval(settings.poll_interval_ms)
 noctalia.log("cloudflare-warp: bootstrap ok schema=" .. State.SCHEMA)
 noctalia.state.watch(State.CHANNEL_COMMAND, onCommand)
-State.publish({ families = "malware" })
+-- The state channel survives a service reload, but an in-flight action does
+-- not; clear the flag so a reload during a mutation cannot disable the UI.
+-- `families` is not published here: the CLI never reports it back, so the
+-- channel keeps the last known value, and State.defaultStatus() already
+-- defaults a fresh channel to "malware".
+publish({ busy = false })
 readVersion()
 refreshStatus()

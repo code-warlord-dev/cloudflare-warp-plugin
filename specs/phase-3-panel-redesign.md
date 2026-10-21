@@ -5,6 +5,12 @@
 **Entry:** `cloudflare-warp/panel.luau`
 **Asset:** `cloudflare-warp/assets/hero-banner.jpeg` (source for the two derived PNGs)
 
+> **Superseded (0.4.3):** баннер заменён анимированной секвенцией — 27 WebP-кадров
+> 800×320 в `assets/banner/` (источник `assets/wGjQl.gif`, запечённая насыщенность
+> 20 → 100 %), высота 160 px, панель 400×734. Актуальные параметры —
+> [docs/DESIGN-PANEL.md](../docs/DESIGN-PANEL.md). §2 и `ui.image`/геометрия в §3 ниже —
+> историческая редакция 0.4.1.
+
 Цель — заменить «админскую форму» на премиальный network control surface:
 статус → действия → детали, один loud-акцент, честные unknown-значения там, где CLI
 их реально отдаёт, и живой отклик на действия.

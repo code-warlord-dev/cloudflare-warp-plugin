@@ -48,47 +48,57 @@ noctalia msg plugins source remove warpdev
 | Entry | Type | What it does |
 |-------|------|--------------|
 | `service` | service | Headless owner of WARP state: polls `warp-cli`, publishes `warp.status`, consumes `warp.command` and IPC. |
-| `widget` | bar widget | Phase status SVG icon, short status text and tooltip; toggles WARP on click. |
+| `widget` | bar widget | Phase status SVG icon, short status text and tooltip; opens the panel on left click, toggles WARP on right click. |
 | `shortcut` | Control Center | Live tile synced to `warp.status`; toggles WARP on click, refreshes on right click. |
-| `panel` | floating panel | Full control surface: status card, mode, families, protocol, identity, registration actions. |
+| `panel` | floating panel | Full control surface: hero card, mode, families, protocol, identity, registration actions. |
 
 ## Interactions
 
 | Surface | Left click | Right click |
 |---------|-----------|-------------|
-| Bar widget | Toggle WARP (`warp.command` action `toggle`) | Open the plugin panel |
+| Bar widget | Open the plugin panel | Toggle WARP (`warp.command` action `toggle`) |
 | Control Center tile | Toggle WARP (`warp.command` action `toggle`) | Refresh status (`warp.command` action `refresh`) |
 
-Toggle clicks are ignored while the service reports `busy`, and the tile is
-disabled while `warp-cli` is unavailable. The bar shows per-phase SVG icons;
+Toggle (right click on the bar) is ignored while the service reports `busy`, and
+the tile is disabled while `warp-cli` is unavailable. The bar shows per-phase
+SVG icons;
 the Control Center tile uses Tabler glyphs (`cloud-lock` / `cloud-off`)
 because `shortcut.setIcon` accepts glyph names only — SVG icons are used in
 the bar.
 
 ## Panel
 
-The panel opens with a right click on the bar widget or via
+The panel opens with a left click on the bar widget or via
 `noctalia msg panel-toggle code-warlord/cloudflare-warp:panel`. The host owns
-the fixed 400×672 geometry. The manifest requests `placement = "floating"`;
+the fixed 400×734 geometry. The manifest requests `placement = "floating"`;
 a user `[plugin_settings] panel_placement` value can override placement at
 runtime (the development host currently runs it attached). The panel has no
 scroll container — the host draws a scrollbar whenever one is present — so
 the height is tuned to the tallest regular state and the footer is anchored
 with `flexGrow`. Layout, top to bottom:
 
-- **Banner** — full-bleed 400×96 phase image with a bottom alpha fade; the
-  root cancels the host's 14 px horizontal inset so the only side gutter is
-  16 px (cards are 368 px wide), and the banner wrapper pulls the top inset;
-  the image radius matches the panel. Full colour for connected, colour at
-  0.65 opacity while connecting/disconnecting, and a dimmed idle image for
-  disconnected/error/unregistered/unknown;
-- **Header** — cloud glyph, "Cloudflare WARP", Refresh (with a short loader)
-  and Close; there is no duplicate close control;
-- **Hero card** — 21 px phase status, one-line subtitle, "Updated HH:MM" and
-  the power button; the accent is green when connected, orange when
-  disconnected, cyan while transitioning, red for error/unavailable, amber
-  for unregistered and grey for unknown. While connecting/disconnecting a
-  thin progress bar runs under the subtitle;
+- **Banner** — full-bleed 400×160 animated image (27 WebP frames rendered
+  from `assets/wGjQl.gif`, each with a baked saturation step from 20 % to
+  full colour and a bottom alpha fade into the panel body). The 2.5:1 asset
+  matches the display box exactly, so the full GIF width is kept — nothing is
+  cropped on the left or right. Opening the panel while connected or
+  connecting plays frames 0 → 26 at the GIF's native 100 ms/frame and holds
+  the last frame; opening while WARP is off shows frame 0 statically with no
+  animation, so the banner matches the phase. Disconnecting plays 26 → 0 and
+  fades the colour down to 20 % (never fully black and white). The
+  root cancels the host's 14 px
+  horizontal inset so the only side gutter is 16 px (cards are 368 px wide),
+  and the banner wrapper pulls the top inset; the image radius matches the
+  panel;
+- **Header** — cloud glyph, "Cloudflare WARP", Refresh (standard glyph with
+  an opacity pulse during feedback) and Close; there is no duplicate close
+  control;
+- **Hero card** — 21 px phase status with a green `shield-check` glyph while
+  connected (phase glyph otherwise), one-line subtitle,
+  "Updated HH:MM" and the power button; the accent is green when connected,
+  muted red-orange when disconnected, cyan while transitioning, red for
+  error/unavailable, amber for unregistered and grey for unknown. While
+  connecting/disconnecting a live five-bar wave runs under the subtitle;
 - **Mode and Protocol** — two equal select columns; Mode is additionally
   disabled while a policy locks it;
 - **DNS filtering** — segmented Off / Malware / Full control; one segment is
@@ -104,10 +114,10 @@ with `flexGrow`. Layout, top to bottom:
 More states and the full visual system: [docs/DESIGN-PANEL.md](../docs/DESIGN-PANEL.md).
 
 Copy IP shows a success state in the footer and next to the identity IP for
-about 1.6 s (driven by second ticks); Refresh shows a pulsing loader for about
-1.5 s. The panel animates its entrance, eases the hero accent and banner
-opacity when the phase changes, pulses the banner and progress bar while
-connecting/disconnecting, and highlights Families segments on hover. Frame
+about 1.6 s (driven by second ticks); Refresh pulses its icon for about 1.5 s.
+The panel animates its entrance, eases the hero accent and plays the banner
+when the phase changes, runs the five-bar wave while connecting/disconnecting,
+and highlights Families segments on hover. Frame
 ticks are requested only while an animation is active and stop when idle.
 Long IPv6 addresses are middle-truncated in the display but copied in full.
 There is no `warp-cli` version caption in the panel.
@@ -176,10 +186,14 @@ the service watches it.
   `status` every tick, `settings list` every 5th tick and `registration show` every 10th
   tick; mutations (`connect`, `disconnect`, `mode`, `dns families`, `tunnel protocol set`)
   run on demand. All calls go through `noctalia.runAsync({...}, cb, timeoutMs)` with a
-  per-command timeout. No `curl`, no `grep`/`awk`, no `os.execute`, no `io.popen`.
-- **Network:** one HTTPS `GET` to `https://www.cloudflare.com/cdn-cgi/trace` via
-  `noctalia.http` when network-identity tracking is enabled (default: every 60 seconds,
-  and on every `refresh`). This is the plugin's only network call.
+  per-command timeout. Trace probing additionally runs an argv-only `curl`
+  (`--silent --show-error --fail --max-time 10 --connect-timeout 5 <fixed URL>`) when the
+  binary exists, with `noctalia.http` as fallback. No shell strings, no `grep`/`awk`,
+  no `os.execute`, no `io.popen`.
+- **Network:** one HTTPS `GET` to `https://www.cloudflare.com/cdn-cgi/trace` when
+  network-identity tracking is enabled (default: every 60 seconds, and on every
+  `refresh`, successful connect/disconnect and mode/protocol change, with a follow-up
+  probe about 5 s later). This is the plugin's only network call.
 
 ## Icons and trademarks
 

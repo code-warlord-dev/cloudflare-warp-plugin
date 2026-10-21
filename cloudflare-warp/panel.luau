@@ -4,8 +4,15 @@
 -- Renderer plus command writer: every action goes through warp.command via
 -- State.setCommand(source = "panel"). This entry never runs CLI calls, never
 -- touches the network and never writes warp.status; the tree re-renders on
--- state changes while the panel is open. The banner assets were derived from
--- assets/hero-banner.jpeg (connected = color, idle = cooler/dimmer).
+-- state changes while the panel is open.
+--
+-- The banner is a 27-frame sequence rendered from assets/wGjQl.gif, stopping
+-- three frames before the GIF end. The host cannot animate GIFs or tint
+-- declarative images, so each frame carries a baked saturation ramp (frame 0 =
+-- 20% color, 26 = full color) and a bottom alpha fade into the panel body.
+-- Opening the panel with a live tunnel (or connecting) plays 0 -> 26;
+-- disconnecting plays 26 -> 0 in reverse. Opening while off shows the frame 0
+-- state without animating, so the banner always matches the phase.
 --
 -- The host owns the panel size and adds a fixed 14 px padding around plugin
 -- content. The root cancels that inset horizontally so the inner 16 px gutter
@@ -24,19 +31,20 @@ local FAMILIES_DEFAULT = "malware"
 
 -- Visual tokens (SPEC phase-3 panel redesign section 1).
 local BRAND_ORANGE = "#F6821F"
+local EMBER = "#C75B43"
 local CYAN = "#59D6FF"
 local SUCCESS = "#3BE3A3"
 
--- Phase presentation: loud accent, banner asset and banner opacity.
-local PHASE_STYLE = {
-  connected = { accent = SUCCESS, banner = "assets/hero-banner-color.png", bannerOpacity = 1.0 },
-  disconnected = { accent = BRAND_ORANGE, banner = "assets/hero-banner-idle.png", bannerOpacity = 1.0 },
-  connecting = { accent = CYAN, banner = "assets/hero-banner-color.png", bannerOpacity = 0.65 },
-  disconnecting = { accent = CYAN, banner = "assets/hero-banner-color.png", bannerOpacity = 0.65 },
-  unregistered = { accent = "#FFB340", banner = "assets/hero-banner-idle.png", bannerOpacity = 0.9 },
-  error = { accent = "#FF5C6C", banner = "assets/hero-banner-idle.png", bannerOpacity = 0.85 },
-  unavailable = { accent = "#FF5C6C", banner = "assets/hero-banner-idle.png", bannerOpacity = 0.85 },
-  unknown = { accent = "#8A93A6", banner = "assets/hero-banner-idle.png", bannerOpacity = 0.85 },
+-- Phase presentation: the one loud accent shared by the hero card.
+local PHASE_ACCENT = {
+  connected = SUCCESS,
+  disconnected = EMBER,
+  connecting = CYAN,
+  disconnecting = CYAN,
+  unregistered = "#FFB340",
+  error = "#FF5C6C",
+  unavailable = "#FF5C6C",
+  unknown = "#8A93A6",
 }
 
 local COPY_FEEDBACK_MS = 1600
@@ -48,37 +56,83 @@ local IP_DISPLAY_MAX = 28
 -- padding to reach the panel edges.
 local PANEL_WIDTH = 400
 local HOST_PADDING = 14
-local BANNER_HEIGHT = 96
+local BANNER_HEIGHT = 160
 local BANNER_WRAP_HEIGHT = BANNER_HEIGHT - HOST_PADDING
 local BANNER_RADIUS = 12
+
+-- Banner frame sequence (assets/banner/frame-XX.webp, derived from wGjQl.gif).
+-- The sequence ends three frames early per owner request; the baked saturation
+-- ramp still reaches full color on the final used frame.
+local BANNER_FRAME_COUNT = 27
+local BANNER_FRAME_MS = 100 -- native GIF delay, 10 ticks per frame
+-- Each frame also has a baked bottom alpha fade so the banner blends into the panel.
 
 -- Animation timing (milliseconds).
 local FRAME_STEP_MS = 33
 local ENTRANCE_MS = 420
 local ACCENT_TAU_MS = 140
-local BANNER_TAU_MS = 180
 local HOVER_TAU_MS = 70
-local PULSE_PERIOD_MS = 2200
-local PROGRESS_PERIOD_MS = 1600
+local WAVE_PERIOD_MS = 900
 
 local status = State.defaultStatus()
 local isOpen = false
 local copiedUntilMs = 0
 local refreshUntilMs = 0
-
--- Animated presentation state: phase accent, banner opacity, hover easing and
--- the one-shot entrance progress.
+-- Animated presentation state: phase accent, banner frame/direction, hover
+-- easing and the one-shot entrance progress.
 local accentR, accentG, accentB = 138, 147, 166
-local bannerAlpha = 0.85
+local bannerFrame = 0
+local bannerAnimDir = 0 -- +1 forward, -1 reverse, 0 static
+local bannerAnimAccMs = 0
 local entranceT = 1
 local hoverCurrent = { off = 0, malware = 0, full = 0 }
 local hoverTarget = { off = 0, malware = 0, full = 0 }
 local frameAccMs = 0
 local frameTicksOn = false
-local progressStartMs = 0
 
 local render -- forward declaration: callbacks below re-render after local actions.
 local wakeAnimation
+
+local function isConnectedLike(phase)
+  return phase == "connected" or phase == "connecting"
+end
+
+-- The forward replay starts at the 20% first frame; a replay already
+-- running is left alone so a connecting -> connected poll cannot restart it,
+-- and a reverse in flight just flips direction to avoid a saturation jump.
+local function startBannerForward(force)
+  if not force then
+    if bannerAnimDir == 1 then
+      return
+    end
+    if bannerAnimDir == -1 then
+      bannerAnimDir = 1
+      bannerAnimAccMs = 0
+      wakeAnimation()
+      return
+    end
+  end
+  bannerFrame = 0
+  bannerAnimDir = 1
+  bannerAnimAccMs = 0
+  wakeAnimation()
+end
+
+-- Reverse continues from the current frame so a disconnect mid-forward does
+-- not jump; from the static last frame it replays 26 -> 0 exactly.
+local function startBannerReverse()
+  if bannerAnimDir == -1 or bannerFrame <= 0 then
+    return
+  end
+  bannerFrame = math.min(bannerFrame, BANNER_FRAME_COUNT - 1)
+  bannerAnimDir = -1
+  bannerAnimAccMs = 0
+  wakeAnimation()
+end
+
+local function bannerFramePath()
+  return string.format("assets/banner/frame-%02d.webp", bannerFrame)
+end
 
 local function nowMs()
   return tonumber(noctalia.nowMs()) or 0
@@ -126,15 +180,19 @@ local function applyStatus(value)
   nextStatus.phase = Icons.normalizePhase(nextStatus.phase)
   status = nextStatus
   if isOpen and status.phase ~= prevPhase then
-    -- Reveal the new banner asset with a short dip instead of a hard cut.
-    bannerAlpha = math.min(bannerAlpha, 0.35)
-    progressStartMs = nowMs()
+    local wasConnected = isConnectedLike(prevPhase)
+    local nowConnected = isConnectedLike(status.phase)
+    if nowConnected and not wasConnected then
+      startBannerForward(false)
+    elseif wasConnected and (status.phase == "disconnecting" or status.phase == "disconnected") then
+      startBannerReverse()
+    end
     wakeAnimation()
   end
 end
 
-local function phaseStyle()
-  return PHASE_STYLE[status.phase] or PHASE_STYLE.unknown
+local function phaseAccent()
+  return PHASE_ACCENT[status.phase] or PHASE_ACCENT.unknown
 end
 
 local function isBusy()
@@ -151,10 +209,20 @@ local function controlsEnabled()
   return status.available == true and status.busy ~= true and status.registered ~= false
 end
 
+-- A held transition deliberately keeps busy set, so power ignores busy there:
+-- it is the escape hatch (toggle maps connecting -> disconnect, disconnecting -> connect).
 local function powerEnabled()
   local phase = status.phase
-  return status.available == true and status.busy ~= true and status.registered ~= false
-    and phase ~= "unregistered" and phase ~= "unavailable"
+  if status.available ~= true or status.registered == false then
+    return false
+  end
+  if phase == "unregistered" or phase == "unavailable" then
+    return false
+  end
+  if isTransitionPhase() then
+    return true
+  end
+  return status.busy ~= true
 end
 
 local function traceIp()
@@ -227,12 +295,11 @@ local function needsAnimation()
   if entranceT < 1 then
     return true
   end
-  local style = phaseStyle()
-  local tr, tg, tb = hexToRgb(style.accent)
+  local tr, tg, tb = hexToRgb(phaseAccent())
   if math.abs(accentR - tr) + math.abs(accentG - tg) + math.abs(accentB - tb) > 2 then
     return true
   end
-  if math.abs(bannerAlpha - style.bannerOpacity) > 0.004 then
+  if bannerAnimDir ~= 0 then
     return true
   end
   if isTransitionPhase() or refreshUntilMs > 0 then
@@ -266,21 +333,32 @@ local function syncFrameTicks()
 end
 
 local function displayedBannerOpacity()
-  local value = bannerAlpha
-  if isTransitionPhase() then
-    value = value + 0.06 * math.sin(nowMs() / PULSE_PERIOD_MS * math.pi * 2)
-  end
-  value = value * easeOutCubic(entranceT)
-  return math.max(0, math.min(1, value))
+  return math.max(0, math.min(1, easeOutCubic(entranceT)))
 end
 
-local function busyProgress()
+local function transitionWave()
   if not isTransitionPhase() then
-    return 0
+    return nil
   end
-  local elapsed = math.max(0, nowMs() - progressStartMs)
-  local wave = 0.5 - 0.5 * math.cos(elapsed / PROGRESS_PERIOD_MS * math.pi * 2)
-  return 0.12 + 0.88 * wave
+  local t = nowMs() / WAVE_PERIOD_MS * math.pi * 2
+  local bars = {}
+  for i = 1, 5 do
+    local level = 0.5 + 0.5 * math.sin(t + (i - 1) * 0.7)
+    bars[i] = ui.column({
+      key = "transition-bar-" .. i,
+      width = 3,
+      height = math.floor(4 + 10 * level + 0.5),
+      radius = 2,
+      fill = CYAN,
+      opacity = 0.45 + 0.55 * level,
+    })
+  end
+  return ui.row({
+    key = "transition-wave",
+    height = 14,
+    gap = 3,
+    align = "center",
+  }, bars)
 end
 
 local function refreshPulseOpacity()
@@ -342,12 +420,29 @@ function onFrameTick(deltaMs)
   if entranceT < 1 then
     entranceT = math.min(1, entranceT + dt / ENTRANCE_MS)
   end
-  local style = phaseStyle()
-  local tr, tg, tb = hexToRgb(style.accent)
+  local tr, tg, tb = hexToRgb(phaseAccent())
   accentR = approach(accentR, tr, dt, ACCENT_TAU_MS)
   accentG = approach(accentG, tg, dt, ACCENT_TAU_MS)
   accentB = approach(accentB, tb, dt, ACCENT_TAU_MS)
-  bannerAlpha = approach(bannerAlpha, style.bannerOpacity, dt, BANNER_TAU_MS)
+  if bannerAnimDir ~= 0 then
+    bannerAnimAccMs = bannerAnimAccMs + dt
+    while bannerAnimAccMs >= BANNER_FRAME_MS do
+      bannerAnimAccMs = bannerAnimAccMs - BANNER_FRAME_MS
+      bannerFrame = bannerFrame + bannerAnimDir
+      if bannerFrame >= BANNER_FRAME_COUNT - 1 then
+        bannerFrame = BANNER_FRAME_COUNT - 1
+        bannerAnimDir = 0
+        bannerAnimAccMs = 0
+        break
+      end
+      if bannerFrame <= 0 then
+        bannerFrame = 0
+        bannerAnimDir = 0
+        bannerAnimAccMs = 0
+        break
+      end
+    end
+  end
   for _, id in ipairs(FAMILIES_ORDER) do
     hoverCurrent[id] = approach(hoverCurrent[id], hoverTarget[id], dt, HOVER_TAU_MS)
   end
@@ -410,7 +505,7 @@ local function onCopyIp()
     return
   end
   local copied = noctalia.copyToClipboard(ip, "text/plain")
-  if copied == false then
+  if copied ~= true then
     return
   end
   copiedUntilMs = nowMs() + COPY_FEEDBACK_MS
@@ -419,7 +514,7 @@ local function onCopyIp()
 end
 
 local function onRefresh()
-  if isBusy() or refreshUntilMs > 0 then
+  if refreshUntilMs > 0 then
     return
   end
   refreshUntilMs = nowMs() + REFRESH_FEEDBACK_MS
@@ -454,11 +549,10 @@ local function shortIp(ip)
   return string.sub(ip, 1, 13) .. "…" .. string.sub(ip, -12)
 end
 
--- Banner: full-bleed phase image. The root cancels the host's horizontal
--- inset, so only the top inset is pulled with negative padding here; the PNG
--- carries the bottom alpha fade.
+-- Banner: full-bleed animated frame. The root cancels the host's horizontal
+-- inset, so only the top inset is pulled with negative padding here. The
+-- sequence is pre-cropped to the 400:160 aspect, so cover adds no extra crop.
 local function banner()
-  local style = phaseStyle()
   return ui.column({
     key = "banner-wrap",
     height = BANNER_WRAP_HEIGHT,
@@ -466,7 +560,7 @@ local function banner()
   }, {
     ui.image({
       key = "banner",
-      path = style.banner,
+      path = bannerFramePath(),
       width = PANEL_WIDTH,
       height = BANNER_HEIGHT,
       radius = BANNER_RADIUS,
@@ -478,7 +572,6 @@ end
 
 -- Header: small brand glyph, title, refresh (loader while working) and close.
 local function headerRow()
-  local busy = isBusy()
   local refreshing = refreshUntilMs > 0
   return ui.row({
     width = "100%",
@@ -497,11 +590,11 @@ local function headerRow()
     ui.spacer({ flexGrow = 1 }),
     ui.button({
       key = "header-refresh",
-      glyph = (busy or refreshing) and "loader-2" or "refresh",
+      glyph = "refresh",
       variant = "ghost",
       opacity = refreshPulseOpacity(),
       tooltip = noctalia.tr("panel.action.refresh"),
-      enabled = not busy and not refreshing,
+      enabled = not refreshing,
       onClick = onRefresh,
     }),
     ui.button({
@@ -554,10 +647,16 @@ local function heroCard()
       subtitle = table.concat(parts, " — ")
     end
   end
+  -- Connected reads as the native Tabler shield-check in the success accent;
+  -- other phases keep their phase glyph. No busy override: the transition wave
+  -- carries activity.
+  local statusGlyph = if status.phase == "connected"
+    then "shield-check"
+    else Icons.glyph(status.phase)
   local children = {
     ui.row({ width = "100%", gap = 10, align = "center" }, {
       ui.glyph({
-        name = Icons.statusGlyph(status.phase, isBusy()),
+        name = statusGlyph,
         size = 22,
         color = accent,
       }),
@@ -587,15 +686,10 @@ local function heroCard()
     }),
   }
   if isTransitionPhase() then
-    children[#children + 1] = ui.progress({
-      key = "busy-progress",
-      progress = busyProgress(),
-      fill = CYAN,
-      track = CYAN .. "26",
-      height = 3,
-      radius = 2,
-      flexGrow = 1,
-    })
+    local wave = transitionWave()
+    if wave ~= nil then
+      children[#children + 1] = wave
+    end
   end
   return ui.column({
     key = "hero-card",
@@ -936,12 +1030,21 @@ function onOpen(_context)
   -- Apply while still closed so opening does not run the phase-transition dip.
   applyStatus(noctalia.state.get(State.CHANNEL_STATUS))
   isOpen = true
-  local style = phaseStyle()
-  accentR, accentG, accentB = hexToRgb(style.accent)
-  bannerAlpha = style.bannerOpacity
+  accentR, accentG, accentB = hexToRgb(phaseAccent())
+  -- Match the banner to the current phase on open: replay the ramp only when
+  -- the tunnel is live; off/error states stay static on the 20% frame.
+  if status.phase == "disconnecting" then
+    bannerFrame = BANNER_FRAME_COUNT - 1
+    startBannerReverse()
+  elseif isConnectedLike(status.phase) then
+    startBannerForward(true)
+  else
+    bannerFrame = 0
+    bannerAnimDir = 0
+    bannerAnimAccMs = 0
+  end
   entranceT = 0
   frameAccMs = 0
-  progressStartMs = nowMs()
   for _, id in ipairs(FAMILIES_ORDER) do
     hoverCurrent[id] = 0
     hoverTarget[id] = 0
@@ -954,6 +1057,8 @@ function onClose()
   isOpen = false
   copiedUntilMs = 0
   refreshUntilMs = 0
+  bannerAnimDir = 0
+  bannerAnimAccMs = 0
   entranceT = 1
   for _, id in ipairs(FAMILIES_ORDER) do
     hoverCurrent[id] = 0
@@ -999,6 +1104,4 @@ noctalia.state.watch(State.CHANNEL_STATUS, function(value)
 end)
 
 applyStatus(noctalia.state.get(State.CHANNEL_STATUS))
-local initialStyle = phaseStyle()
-accentR, accentG, accentB = hexToRgb(initialStyle.accent)
-bannerAlpha = initialStyle.bannerOpacity
+accentR, accentG, accentB = hexToRgb(phaseAccent())

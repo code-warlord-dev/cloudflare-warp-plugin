@@ -10,13 +10,13 @@
 
 | Поле | Значение |
 |------|----------|
-| **Plugin version** | `0.4.2` (tag `v0.4.2`, merge `ae2fe96`) |
-| **Roadmap phase** | Phase 3 — Panel **done** (0.4.0 + redesign v2 0.4.1 + padding 0.4.2) |
-| **Branch** | `main` |
+| **Plugin version** | `0.4.3` (release via PR #7) |
+| **Roadmap phase** | Phase 3 — Panel **done** (0.4.0 + redesign v2 0.4.1 + padding 0.4.2 + animated banner 0.4.3) |
+| **Branch** | `feat/phase-3-banner` |
 | **Remote** | https://github.com/code-warlord-dev/cloudflare-warp-plugin |
 | **Last merge** | `ae2fe96` Merge PR #6 — panel padding v0.4.2 (origin/main) |
 | **Blockers** | none |
-| **Next action** | Phase 4 — Polish & i18n (v0.5.0) |
+| **Next action** | Merge PR #7 → tag `v0.4.3`; owner live-test K-18 (реальный connect/disconnect hold+identity) и досъёмка скриншотов K-17; затем Phase 4 (0.5.0) |
 
 ---
 
@@ -52,6 +52,26 @@
 | reviewer | Self-review: panel still renderer-only, host-inset math verified live, no QA hooks left | done | APPROVE; lint 0/0 |
 | qa | Live QA: 400×672, 16 px gutters, no clipping/scrollbar; 8 screenshots refreshed | done | PASS; fixture removed before commit |
 | orchestrator | Docs update padding fix + release 0.4.2 | done | PR #6 merged `ae2fe96`; tag `v0.4.2` pushed |
+| implementer | Animated banner: 27 WebP-кадров из `wGjQl.gif`, saturation ramp, нижний alpha-fade, forward/reverse по frame ticks, высота 160 px, панель 400×734 | done | working tree, `main`; full-width crop без бокового кропа |
+| implementer | Layout fix после баннера: высота панели 672 → 734, футер больше не обрезается | done | live-проверка 400×734 |
+| reviewer | Self-review: панель по-прежнему только рендер + `warp.command`; нет `runAsync`/HTTP/state-write; `plugin_api = 24` | done | APPROVE; lint 0/0 |
+| qa | Live QA: forward-анимация 0→26, gradient-переход, полная ширина без бокового кропа, футер целиком | done | PASS; reverse проверен ранее; фикстуры отсутствуют |
+| docs | CHANGELOG/DESIGN-PANEL/SPEC/API-NOTES/README/ROADMAP/VERSIONING под 0.4.3 | done | screenshots `docs/images/panel-*.png` ещё подлежат обновлению |
+| implementer | Hero icon: нативный Tabler `shield-check` (success-green) для connected; `loader-2` убран из hero и header Refresh | done | live 400×734 |
+| implementer | Fix: залипший `busy` после hot reload сервиса — сброс на init и в update при `actionInFlight = false`; Refresh доступен при busy | done | live: контролы снова активны, лог `cleared stale busy flag` |
+| qa | Live capture: shield-check в hero, refresh/close/cloud-lock/world/copy/settings glyphs, контролы enabled | done | PASS; lint 0/0 |
+| implementer | Owner round 2: ЛКМ = панель / ПКМ = toggle, насыщенность баннера 20 %, ember-акцент disconnected, sine-волна в transition, баннер при open соответствует фазе | done | working tree, `main` |
+| implementer | Identity refresh после connect/disconnect: немедленная trace-проба + повторная через ~5 с | done | `service.luau`, live-проба за владельцем |
+| reviewer | Self-review round 2: panel только renderer + `warp.command`, нет `runAsync`/HTTP/state-write, `plugin_api = 24`, i18n без хардкода | done | APPROVE; lint 0/0 |
+| qa | Live QA round 2: disconnected open (статичный кадр 0, ember, без анимации), connecting wave (3 кадра), restore connected | done | PASS; QA fixture удалена, lint 0/0 |
+| docs | Синхронизация под раунд 2: CHANGELOG 0.4.3, SPEC, DESIGN-PANEL, README, STATE/ROADMAP | done | скриншоты — K-17 |
+| implementer | Fix: «Подключение…» мигал и схлопывался в «Отключено» — transition hold до подтверждения целевой фазы поллингом (30 с safety timeout), busy держится вместе с фазой | done | `service.luau`; live-тоггл за владельцем (K-18) |
+| implementer | Fix: identity не обновлялась — trace переведён на argv-only `curl` (http таймаутит, K-08), refresh также после set-mode/set-protocol | done | `service.luau`, `lib/commands.luau`; trace live-проверен, IP сменился |
+| reviewer | Self-review раунд 3: hold не блокирует поллинг, curl argv без payload, fallback на http, circuit breaker/in-flight сохранены | done | APPROVE; lint 0/0 |
+| docs | Синхронизация под раунд 3: CHANGELOG, SPEC §5.5/§8.1, API-NOTES, STATE | done | — |
+| reviewer | Раунд 4 (`74ba6c7`/`b2907dc`): блокер — формулировка CHANGELOG про Copy IP противоречит строгой `copied ~= true` в коде (код SPEC-соответствует); minor — комментарий panel описывает неверный маппинг toggle | done | REQUEST_CHANGES |
+| implementer | Фикс-раунд 4: CHANGELOG приведён к фактическому strict-поведению, комментарий `panel.luau` — к реальному маппингу (`connecting→disconnect`, `disconnecting→connect`); рантайм не тронут, lint 0/0 | done | working tree |
+| qa | Live-гейты 0.4.3: lint 0/0; фикстур нет; `[warpdev] 0.4.3 enabled`; IPC refresh + panel open/close без ERR; WARP не мутировался | done | PASS |
 
 ---
 
@@ -88,6 +108,30 @@
 - [x] Release 0.4.1: PR #5 merged в `main` (`cb14a14`), tag `v0.4.1` создан и запушен; 8 скриншотов обновлены под 400×672
 - [x] Padding fix 0.4.2: root отменяет горизонтальный host-inset (`paddingH = -14`) → боковые поля 16 px, карточки 368 px; вертикальный ритм не изменён
 - [x] Padding QA: live connected + fixture-состояния, отсутствие clipping/scrollbar на 400×672; 8 скриншотов пересняты, фикстура удалена до коммита
+- [x] Animated banner 0.4.3: 27 WebP-кадров (`assets/banner/frame-00…26.webp`) из `wGjQl.gif`, saturation ramp **20 % → full color**, стоп за 3 кадра до конца GIF
+- [x] Banner playback: forward 0→26 при открытии/подключении, reverse 26→0 при отключении, frame ticks 100 ms/кадр, остановка в idle
+- [x] Full-width assets: crop 640×256+0+0 → 800×320 (2.5:1), таймкод замазан, `fit=cover` не режет левый/правый край
+- [x] Banner height 160 px + запечённый нижний alpha-fade 56 px (28 px на экране) для плавного перехода в тело панели
+- [x] Layout fix: панель 400×734, футер полностью виден, без scrollbar; live forward-анимация и градиент проверены
+- [x] Hero icon: нативный Tabler `shield-check` (success-green) для connected; остальные фазы — phase glyph 22; `loader-2` убран из hero и header Refresh (статичная дуга читалась как обрезанное кольцо)
+- [x] Icon audit: cloud-lock, refresh, close, power, world, copy, check, user-plus, settings отрисованы корректно
+- [x] Fix busy deadlock: `clearStaleBusy()` на init и в каждом `update()` при `actionInFlight = false`; state переживает reload сервиса, а in-flight действие — нет, поэтому `busy` оставался `true` и дизейблил power/Mode/Protocol/DNS/Refresh; Refresh больше не блокируется busy
+- [x] Owner round 2 — клики: виджет открывает панель по **ЛКМ**, toggle отправляется по **ПКМ**; shortcut по-прежнему ЛКМ toggle / ПКМ refresh
+- [x] Owner round 2 — баннер: кадр 0 сохранён на **20 % цвета** вместо grayscale, reverse-воспроизведение возвращает к нему же
+- [x] Owner round 2 — цвет: акцент `disconnected` заменён на приглушённый ember `#C75B43`
+- [x] Owner round 2 — анимация: progress-полоса заменена пятиполосной sine-волной на существующих frame ticks
+- [x] Owner round 2 — open: баннер соответствует фазе — forward 0→26 только при connected/connecting, при off/error статичный кадр 0 без анимации
+- [x] Identity refresh: после успешных connect/disconnect сервис делает trace-пробу сразу и повторно через ~5 с (`pendingTraceAt`), не дожидаясь 60-секундного цикла
+- [x] QA round 2: disconnected open — кадр 0 статичен (diff верхних 128 px баннера = 0 между кадрами 0.7 s и 2.3 s), ember hero, wave скрыта
+- [x] QA round 2: connecting — wave из 5 полос меняет высоту/opacity между кадрами; контролы dim; после restore — connected, зелёный shield, полный цвет баннера
+- [x] QA round 2: фикстура удалена, сервис побайтно восстановлен из бэкапа, lint 0/0, лог без ERR
+- [x] Fix round 3 — фаза: `connecting`/`disconnecting` удерживаются сервисом до наблюдения целевой фазы; поллинг источника или та же transition-фаза не перетирают её; safety timeout 30 с; `busy` держится вместе с фазой
+- [x] Fix round 3 — identity: trace через argv-only `curl` (флаги таймаутов, фиксированный URL), `noctalia.http` — fallback; ошибки логируют exit code + stderr (первая и каждая пятая подряд)
+- [x] Fix round 3 — refresh identity после успешных set-mode/set-protocol (сразу + повтор через ~5 с)
+- [x] Trace live: принудительный refresh сменил IP `104.28.244.142` → `2a09:bac5:5983:2432::39b:ee`, время trace обновилось; три прогона без ошибок
+- [x] Lint 0/0 после раунда 3; production-сервис восстановлен, QA-фикстуры отсутствуют
+- [x] Release-раунд 4: reviewer REQUEST_CHANGES (CHANGELOG про Copy IP противоречил строгой `copied ~= true`; комментарий о маппинге toggle) → CHANGELOG/комментарий приведены к shipped-поведению, рантайм не тронут
+- [x] QA-гейты 0.4.3: lint 0/0, исходники чистые от фикстур, `[warpdev] 0.4.3 enabled`, IPC refresh + panel open/close без ERR, WARP не мутировался
 
 
 ---
@@ -103,7 +147,7 @@
 | K-05 | Включены конкурирующие `levi/warp` и `code_warlord/warp_toggle` — QA не трогает, фильтрует логи | minor | qa |
 | K-06 | `connecting` и `warn` иконки почти неразличимы на 16 px | minor | Phase 3 (design) |
 | K-07 | На `5.3.0-1-dirty` `plugins disable` не вызывает Luau `onExit`; acceptance под это поправлен | known limit | docs |
-| K-08 | `cdn-cgi/trace` через `noctalia.http` падает бёрстами (`curl=28`, 30s-таймаут, опций нет) — обработано circuit breaker'ом; причина на уровне хоста/WARP-туннеля | known limit | Phase 4 / внешнее |
+| K-08 | `cdn-cgi/trace` через `noctalia.http` на dev-хосте таймаутит (`curl=28`, пустое тело, опций нет) — **обойдено**: trace идёт argv-only `curl` с http-fallback; причина на уровне хоста/WARP-туннеля остаётся | resolved (workaround) | — |
 | K-09 | `warp.command` (state-канал) не имеет CLI-пути записи — в QA проверен только IPC; оба пути сходятся в `dispatch` | minor | qa / Phase 3 |
 | K-10 | Параллельная вариация Phase 2 из `~/DEV` (другой fallback с setGlyphColor, решения в SPEC/spec/STATE) перемещена в `git stash@{0}` (main) + бэкап `/tmp/k10-parallel-backup.patch` и `/tmp/k10-icons-backup.luau` перед rebase на PR #3 — сверить и решить: отбросить или переупаковать в docs-decision | major | owner / orchestrator |
 | K-11 | ~~Source precedence: `warpqa` показывает 0.4.0~~ — resolved: `plugins list` отдаёт `[warpdev] 0.4.1`, панель живьём 400×672 | resolved | — |
@@ -111,6 +155,9 @@
 | K-13 | `[plugin_settings] panel_placement = "attached"` на dev-хосте переопределяет manifest `floating`; манифест корректен | minor | owner / config |
 | K-14 | На dev-хосте нет input-инструментов (ydotool/wtype/dotool), поэтому клики Settings/Refresh/selects проверены review + фикстурами, а не реальными нажатиями | minor | qa |
 | K-15 | Параллельная ветка `release-0.4.0` / worktree `feat/panel-redesign` (cline) содержит старые height-фиксы 900→650 для панели 0.4.0; в redesign v2 не входит, не мержилась и не удалялась | minor | owner |
+| K-16 | Легаси `hero-banner.jpeg` + `hero-banner-color/idle.png` (~3 MB) панелью не используются; удалить или оставить как исходники — решение владельца | minor | owner |
+| K-17 | `docs/images/panel-*.png` сняты до 0.4.3 (баннер 96 px / панель 672; без `shield-check`, 20 % floor, ember-акцента и sine-волны); обновить 8 кадров после sign-off | minor | docs / qa |
+| K-18 | Identity refresh и phase hold после **реального** connect/disconnect не прогнаны live (QA не мутирует WARP); trace-путь проверен live (IP сменился), transition-логика — review; нужен владельческий тоггл | minor | owner / qa |
 
 ---
 
@@ -145,6 +192,24 @@
 | 2026-10-20 | Banner: color/idle PNG с запечённым нижним alpha-fade | у declarative UI нет gradient/overlay primitive |
 | 2026-10-20 | Состояния для скриншотов — временные фикстуры, реальный WARP не мутируется | QA safety: connect/disconnect/set-* не трогали |
 | 2026-10-20 | Боковые поля панели 16 px: root `paddingH = -14` отменяет host-inset | owner: общий padding был слишком большим; 30 px → 16 px, карточки 340 → 368 px; вертикаль без изменений |
+| 2026-10-21 | Баннер — 27 предрендеренных WebP-кадров, смена `path` по frame ticks | хост не проигрывает GIF и не умеет tint/saturation у `ui.image`; запечённая насыщенность — единственный рабочий путь |
+| 2026-10-21 | Остановка за 3 кадра до конца GIF (кадр 26), рампа перенормирована на 26 | требование владельца; последний используемый кадр остаётся 100 % насыщенности |
+| 2026-10-21 | Полная ширина кадра: crop 640×256+0+0 → 800×320 (2.5:1) | owner: нельзя резать баннер слева/справа; аспект точно совпадает с 400×160 |
+| 2026-10-21 | Таймкод источника замазан feathered-клоном до ресайза | в полном кадре водяной знак попадал в видимую область; патч под alpha-fade незаметен |
+| 2026-10-21 | Нижний alpha-fade 56 px из 320 запечён в каждый кадр | у declarative UI нет gradient-оверлея; fade даёт плавный переход в тело панели |
+| 2026-10-21 | Баннер 160 px, панель 400×734 | увеличение баннера по просьбе владельца; 734 вмещает футер без обрезания и scrollbar |
+| 2026-10-21 | Hero connected = нативный `shield-check` glyph в success-green; busy не подменяет иконку | owner отклонил оранжевый кастомный щит; нативный glyph в цвете акцента консистентен с остальными фазами и не требует ассета |
+| 2026-10-21 | `busy` self-heal в сервисе (init + update), Refresh доступен при busy | state переживает reload сервиса, actionInFlight — нет; залипший busy полностью блокировал UI без пути восстановления |
+| 2026-10-21 | Header Refresh всегда рисует `refresh`, фидбек — opacity pulse | статичная дуга `loader-2` на 1.5 s выглядела сломанной; пульс уже был реализован |
+| 2026-10-21 | Виджет: ЛКМ открывает панель, ПКМ отправляет toggle | требование владельца; `[widget.actions] right = "none"` уже пропускал правый клик в `onRightClick` |
+| 2026-10-21 | Нижняя точка saturation ramp — 20 %, а не grayscale | owner: при отключении баннер не должен становиться полностью чёрно-белым |
+| 2026-10-21 | `disconnected` accent = ember `#C75B43` | owner: блок «Отключено» оранжево-красный, ближе к красному, приглушённый, не спорит с баннером |
+| 2026-10-21 | Transition-активность — пятиполосная sine-волна вместо progress | owner: бегающий прогресс-бар выглядел устаревшим; волна использует уже идущие frame ticks и не меняет высоту hero |
+| 2026-10-21 | После connect/disconnect — trace сразу + повтор через ~5 с | owner: сетевая идентичность обязана обновляться при вкл/выкл; второй замер ловит стабилизировавшийся маршрут |
+| 2026-10-21 | При open баннер соответствует фазе: forward только для connected/connecting, иначе статичный кадр 0 | owner: если WARP выключен, баннер тоже должен быть в состоянии «выкл» и не анимироваться |
+| 2026-10-21 | `connecting`/`disconnecting` удерживаются до наблюдения целевой фазы поллингом; safety timeout 30 с; `busy` держится вместе с фазой | owner: «Подключение…» показывался на мгновение и схлопывался в «Отключено»; CLI возвращается раньше, чем туннель поднялся |
+| 2026-10-21 | Trace: argv-only `curl` первым, `noctalia.http` — fallback | K-08: http стабильно таймаутит на dev-хосте, системный curl работает; фиксированный argv без payload и shell-слоя, сетевой запрос один |
+| 2026-10-21 | Identity refresh также после set-mode/set-protocol (сразу + ~5 с) | owner: при смене режимов «ничего не меняется» — маршрут/выход могут смениться без reconnect |
 
 ---
 

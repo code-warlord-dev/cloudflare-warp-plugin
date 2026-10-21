@@ -39,7 +39,7 @@ argv-форма `runAsync` (без shell). Телеметрия туннеля (
 | Entry ID | Тип | Файл | Назначение |
 |----------|-----|------|------------|
 | `service` | `[[service]]` | `service.luau` | Единственный источник правды: поллит `warp-cli`, публикует `warp.status`, потребляет `warp.command`. |
-| `widget` | `[[widget]]` | `widget.luau` | Bar-виджет: SVG + текст + tooltip, ЛК toggle, ПК панель. |
+| `widget` | `[[widget]]` | `widget.luau` | Bar-виджет: SVG + текст + tooltip, ЛК панель, ПК toggle. |
 | `shortcut` | `[[shortcut]]` | `shortcut.luau` | Плитка Control Center: glyph-пара, checked = connected. |
 | `panel` | `[[panel]]` | `panel.luau` | Детальная панель управления. |
 
@@ -266,19 +266,30 @@ JSON: `decoded.settings` (см. API-NOTES §3.2).
 
 ### 5.5. Trace (egress identity)
 
+На dev-хосте `noctalia.http` к `cdn-cgi/trace` стабильно падает (`curl=28`, пустое тело,
+опции таймаута нет — K-08), поэтому сервис сначала пробует argv-only `curl`, а
+`noctalia.http` оставляет fallback'ом при отсутствии бинарника:
+
 ```luau
-noctalia.http({ url = "https://www.cloudflare.com/cdn-cgi/trace" }, function(res)
-  -- res.ok, res.status, res.body
-end)
+-- argv, без shell; те же флаги задают таймаут транспорта
+{ "curl", "--silent", "--show-error", "--fail",
+  "--max-time", "10", "--connect-timeout", "5", TRACE_URL }
+
+-- fallback
+noctalia.http({ url = TRACE_URL }, function(res) … end)
 ```
 
-Разбор: строки `k=v`; берём `warp` (`on`|`off`|`plus`), `ip`, `loc`, `colo`. Успех →
-`trace = {…, atMs = nowMs()}`. Ошибка/`not res.ok`/таймаут → оставить прежний `trace`,
-увеличить **внутренний** счётчик неудач (не поле state; используется только для
-rate-limit лога — писать раз в N подряд, а не каждый тик). Никогда не блокирует
-статус-поллинг.
+Обе ветки сходятся в один парсер и один набор guard'ов: in-flight, circuit breaker,
+игнор устаревшего результата. Разбор: строки `k=v`; берём `warp` (`on`|`off`|`plus`), `ip`,
+`loc`, `colo`. Успех → `trace = {…, atMs = nowMs()}`. Ошибка/`not res.ok`/таймаут →
+оставить прежний `trace`, увеличить **внутренний** счётчик неудач (не поле state;
+используется только для rate-limit лога — писать раз в N подряд, а не каждый тик).
+Диагностика — exit code + `stderr` в лог при первой и каждой пятой подряд неудаче.
+Никогда не блокирует статус-поллинг.
 
 Частота: `auto_trace = true` → раз в `trace_interval_s`; `false` → только по `refresh`.
+Внеочередные пробы: сразу после успешных connect/disconnect, set-mode/set-protocol и
+повторно примерно через 5 с (`pendingTraceAt`).
 
 Сеть: один HTTPS GET к `www.cloudflare.com` раз в 60 с по умолчанию. Это единственный
 network call плагина и он должен быть указан в README и PR.
@@ -402,7 +413,7 @@ entry = "shortcut.luau"
 id             = "panel"
 entry          = "panel.luau"
 width          = 400
-height         = 672
+height         = 734
 placement      = "floating"
 position       = "auto"
 open_near_click = true
@@ -426,6 +437,13 @@ open_near_click = true
 - `onExit(signal, reason)` — лог; detached-процессы не убиваем (короткие вызовы CLI).
 - Все вызовы — с in-flight guard на каждый тип команды; мутации — через общий `actionInFlight`.
 - `busy` из state блокирует повторные мутации на стороне UI.
+- Успешный connect/disconnect обязательно обновляет сетевую идентичность: trace-проба
+  сразу после команды и повторно примерно через 5 с, когда маршрут стабилизируется.
+  То же — после успешных set-mode/set-protocol.
+- `connecting`/`disconnecting` — удерживаемая фаза: после успешного connect/disconnect
+  сервис публикует transition и не заменяет его результатом поллинга, пока не увидит
+  целевую фазу либо не истечёт 30 с. `busy = true` держится вместе с фазой, поэтому UI
+  не прыгает «Подключение…» → «Отключено» → «Подключено».
 
 ### 8.2. Bar Widget
 
@@ -448,9 +466,9 @@ barWidget.setVisible(true)
 | `unknown` | `assets/icons/warp-off.svg` | `tr("widget.text.unknown")` |
 
 - Fallback: `barWidget.setGlyph("cloud-lock")`, если файл иконки не найден/не отрисован.
-- `onClick()` → `warp.command = { seq, action = "toggle", source = "widget" }`
+- `onClick()` → `noctalia.togglePanel("code-warlord/cloudflare-warp:panel")`.
+- `onRightClick()` → `warp.command = { seq, action = "toggle", source = "widget" }`
   (игнорировать при `busy`).
-- `onRightClick()` → `noctalia.togglePanel("code-warlord/cloudflare-warp:panel")`.
 - Tooltip — массив строк: status, mode, families (если известен), protocol, ip, error.
 - Подписка: `noctalia.state.watch("warp.status", applyStatus)` + первичный `get`.
 - Состояние читается только из state; никаких CLI-вызовов из виджета.
@@ -475,16 +493,20 @@ barWidget.setVisible(true)
 
 ```
 ui.column
-  ├─ banner-wrap (paddingV = -14) → image 400×96 (phase asset, bottom alpha fade)
+  ├─ banner-wrap (paddingV = -14) → image 400×160 (кадр секвенции assets/banner/, saturation ramp + bottom alpha fade)
   ├─ header: cloud glyph, title, Refresh, Close
   ├─ content-body (flexGrow=1, без ui.scroll)
-  │   ├─ hero: status + subtitle + «Обновлено HH:MM» + power (+ progress в transition)
+  │   ├─ hero: status icon (connected — glyph shield-check, иначе phase glyph) + status + subtitle + «Обновлено HH:MM» + power (+ wave в transition)
   │   ├─ Mode | Protocol          (два равных столбца)
   │   ├─ Families: segmented, всегда есть выбранный сегмент
   │   └─ identity card: IP (+copy), loc, colo, WARP, trace time
   └─ footer: Copy IP | Register (если !registered) | Settings
 ```
 
+- Баннер при открытии соответствует фазе: `connected`/`connecting` — forward 0 → 26;
+  `disconnecting` — reverse; прочие (off/error/unavailable/unregistered/unknown) —
+  статичный кадр 0 (20 % цвета) без анимации. Reverse также играет при переходе из
+  connected/connecting в disconnecting/disconnected.
 - Families — **сегменты**, а не `ui.select`: у `select` нет «пустого» выбора, и он визуально
   соврёт про текущее значение. Сегменты — `ui.column` с onClick на всю ячейку; выбранный
   сегмент есть всегда: неизвестное write-only значение презентуется как `malware`.
@@ -495,14 +517,19 @@ ui.column
   `panel.mode.unknown` / `panel.protocol.unknown`, а обработчик вычитает offset.
 - Протокол в state — lowercase, в UI — `WireGuard` / `MASQUE`.
 - `trace.atMs == 0` → вместо IP показывать `tr("panel.trace.none")`, Copy IP disabled.
+- После успешного connect/disconnect identity обновляется без ожидания 60-секундного
+  цикла: немедленная trace-проба + повторная через ~5 с. Смена Mode/Protocol даёт те же
+  две пробы.
 - Время trace — `noctalia.formatTime("%H:%M", math.floor(trace.atMs / 1000))`.
 - Copy IP: `noctalia.copyToClipboard(trace.ip, "text/plain")`; feedback только при `true`
   (host возвращает bool), полный IP попадает в буфер даже если строка сокращена.
 - Settings: `noctalia.openSettings()`.
 - Register: `warp.command.action = "register"`; показывать/включать только при `!registered`,
   заменяет Copy IP в footer.
-- `busy` → дизейбл всех мутирующих контролов + спиннер-глиф; контролы dim.
-- Размер: `width = 400`, `height = 672` (host-owned, задаётся в манифесте; изменения
+- `busy` → дизейбл всех мутирующих контролов + dim; активность в transition показывает
+  пятиполосная sine-волна (3 px бары, высота 4–14 px, период 900 ms, opacity 0.45–1.0).
+  Hero-иконка не подменяется спиннером.
+- Размер: `width = 400`, `height = 734` (host-owned, задаётся в манифесте; изменения
   применяются после disable/enable плагина). Scroll-контейнер не используется: хост
   рисует scrollbar всегда, поэтому высота подобрана под штатные состояния.
 - Отступы: root отменяет горизонтальный host-inset (`paddingH = -14`), поэтому
@@ -530,6 +557,8 @@ cloudflare-warp/
 │   ├── en.json
 │   └── ru.json
 ├── assets/
+│   ├── banner/                  # P3: 27 кадров из wGjQl.gif
+│   │   └── frame-00…26.webp
 │   └── icons/
 │       ├── warp-on.svg          # P2
 │       ├── warp-off.svg         # P2
@@ -552,9 +581,9 @@ cloudflare-warp/
    `currentColor`/один `fill`. Официальный логотип Cloudflare не копировать 1:1;
    в README — note про trademark.
 3. Цвета текста — роли палитры (`primary`, `on_surface_variant`, `error`, `success`).
-4. Клики: ЛК toggle, ПК панель. Это **инверсия** относительно `levi/warp`
-   (там ЛК — панель) — зафиксировать в README, чтобы не выглядело багом.
-5. Панель — floating, `position = "auto"`, `open_near_click = true`, 400×672, без scroll.
+4. Клики: ЛК — панель, ПК — toggle WARP (`warp.command`, action `toggle`); у `levi/warp`
+   ЛК тоже панель, поэтому инверсии относительно него нет.
+5. Панель — floating, `position = "auto"`, `open_near_click = true`, 400×734, без scroll.
 6. Tooltip всегда информативен и локализован.
 7. Тексты статуса: `connected`, `disconnected`, `connecting`, `disconnecting`,
    `unregistered`, `error`, `unavailable`, `unknown` — все через `tr("status.<phase>")`.

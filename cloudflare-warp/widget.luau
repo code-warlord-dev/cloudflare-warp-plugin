@@ -2,11 +2,11 @@
 -- Cloudflare WARP - bar widget (Phase 2).
 --
 -- Presentation only: renders the phase SVG icon, a short status text and a
--- detail tooltip from the warp.status channel, and writes toggle commands to
--- warp.command on click. No CLI calls, no HTTP, no bulk file reads: the only
--- filesystem touch is a noctalia.fileExists() probe for the phase SVG asset,
--- run on every render, so a missing asset falls back to a Tabler glyph
--- instead of an empty bar.
+-- detail tooltip from the warp.status channel. Left click opens the panel,
+-- right click writes a toggle command to warp.command. No CLI calls, no HTTP,
+-- no bulk file reads: the only filesystem touch is a noctalia.fileExists()
+-- probe for the phase SVG asset, run on every render, so a missing asset falls
+-- back to a Tabler glyph instead of an empty bar.
 
 local State = require("./lib/state.luau")
 local Icons = require("./lib/icons.luau")
@@ -51,14 +51,14 @@ local function applyStatus(value)
 end
 
 function onClick()
+  noctalia.togglePanel("code-warlord/cloudflare-warp:panel")
+end
+
+function onRightClick()
   if status.busy == true then
     return
   end
   State.setCommand("toggle", { source = "widget" })
-end
-
-function onRightClick()
-  noctalia.togglePanel("code-warlord/cloudflare-warp:panel")
 end
 
 function update() end

@@ -41,6 +41,21 @@ function M.familiesArgv(families: string): ({string}) return withBase({ "dns", "
 function M.protocolArgv(protocol: string): ({string}) return withBase({ "tunnel", "protocol", "set", protocol }) end
 function M.versionArgv(): ({string}) return { "warp-cli", "--version" } end
 
+-- Trace probe. The host's noctalia.http path times out on this platform
+-- (curl 28, 0 bytes), while the system curl reaches the same URL, so the
+-- service prefers argv-only curl and falls back to http when it is absent.
+function M.traceArgv(url: string): ({string})
+  return {
+    "curl",
+    "--silent",
+    "--show-error",
+    "--fail",
+    "--max-time", "10",
+    "--connect-timeout", "5",
+    url,
+  }
+end
+
 -- run: thin wrapper over the argv form of noctalia.runAsync. Returns true if
 -- the process was launched.
 function M.run(base: {string}, cb: (any) -> (), timeoutMs: number): boolean
