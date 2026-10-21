@@ -10,13 +10,13 @@
 
 | Поле | Значение |
 |------|----------|
-| **Plugin version** | `0.4.3` (release via PR #7) |
+| **Plugin version** | `0.4.3` — **released**, tag `v0.4.3` |
 | **Roadmap phase** | Phase 3 — Panel **done** (0.4.0 + redesign v2 0.4.1 + padding 0.4.2 + animated banner 0.4.3) |
-| **Branch** | `feat/phase-3-banner` |
+| **Branch** | `main` |
 | **Remote** | https://github.com/code-warlord-dev/cloudflare-warp-plugin |
-| **Last merge** | `ae2fe96` Merge PR #6 — panel padding v0.4.2 (origin/main) |
+| **Last merge** | `d3d2f0c` Merge PR #7 — animated banner v0.4.3 (tag `v0.4.3` pushed) |
 | **Blockers** | none |
-| **Next action** | Merge PR #7 → tag `v0.4.3`; owner live-test K-18 (реальный connect/disconnect hold+identity) и досъёмка скриншотов K-17; затем Phase 4 (0.5.0) |
+| **Next action** | Phase 4 — Polish & i18n (0.5.0); владельца: live-toggle K-18, досъёмка скриншотов K-17, удаление устаревшего source `warpqa` (K-19) |
 
 ---
 
@@ -72,6 +72,7 @@
 | reviewer | Раунд 4 (`74ba6c7`/`b2907dc`): блокер — формулировка CHANGELOG про Copy IP противоречит строгой `copied ~= true` в коде (код SPEC-соответствует); minor — комментарий panel описывает неверный маппинг toggle | done | REQUEST_CHANGES |
 | implementer | Фикс-раунд 4: CHANGELOG приведён к фактическому strict-поведению, комментарий `panel.luau` — к реальному маппингу (`connecting→disconnect`, `disconnecting→connect`); рантайм не тронут, lint 0/0 | done | working tree |
 | qa | Live-гейты 0.4.3: lint 0/0; фикстур нет; `[warpdev] 0.4.3 enabled`; IPC refresh + panel open/close без ERR; WARP не мутировался | done | PASS |
+| orchestrator | Release 0.4.3: PR #7 merged `d3d2f0c`, tag `v0.4.3` pushed | done | `main` |
 
 ---
 
@@ -158,6 +159,7 @@
 | K-16 | Легаси `hero-banner.jpeg` + `hero-banner-color/idle.png` (~3 MB) панелью не используются; удалить или оставить как исходники — решение владельца | minor | owner |
 | K-17 | `docs/images/panel-*.png` сняты до 0.4.3 (баннер 96 px / панель 672; без `shield-check`, 20 % floor, ember-акцента и sine-волны); обновить 8 кадров после sign-off | minor | docs / qa |
 | K-18 | Identity refresh и phase hold после **реального** connect/disconnect не прогнаны live (QA не мутирует WARP); trace-путь проверен live (IP сменился), transition-логика — review; нужен владельческий тоггл | minor | owner / qa |
+| K-19 | Устаревший path-source `warpqa` (из `~/.cline/worktrees/...`) всё ещё зарегистрирован в хосте; `warpdev` имеет приоритет (K-11), но до Phase 5 стоит `plugins source remove warpqa` | minor | owner |
 
 ---
 
