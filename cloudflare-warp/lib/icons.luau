@@ -73,15 +73,6 @@ function M.glyph(phase: any): string
   return GLYPH[M.normalizePhase(phase)]
 end
 
--- statusGlyph: detail-panel header glyph - the phase glyph, with a busy
--- override so an in-flight mutation reads as activity (Phase 3).
-function M.statusGlyph(phase: any, busy: any): string
-  if busy == true then
-    return "loader-2"
-  end
-  return M.glyph(phase)
-end
-
 -- phaseColor: palette role for phase-colored text (SPEC 10.3): connected
 -- reads as success, error/unavailable as error, everything else as primary.
 function M.phaseColor(phase: any): string
