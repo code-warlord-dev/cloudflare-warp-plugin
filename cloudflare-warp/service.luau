@@ -197,6 +197,8 @@ local function holdTransition()
       phase = transitionPhaseName(),
       busy = true,
       available = true,
+      errorCode = "",
+      message = "",
     })
     return true
   end
@@ -843,8 +845,14 @@ function update()
   end
   local now = noctalia.nowMs()
   if pendingTraceAt > 0 and now >= pendingTraceAt then
-    pendingTraceAt = 0
-    refreshTrace(true)
+    if traceInFlight then
+      -- A probe is already running: refreshTrace(true) would be dropped by its
+      -- in-flight guard. Re-arm the delayed probe so a later poll retries it.
+      pendingTraceAt = now + 5000
+    else
+      pendingTraceAt = 0
+      refreshTrace(true)
+    end
   end
   if settings.auto_trace and (now - lastTraceAt) >= settings.trace_interval_s * 1000 then
     if now < traceSuspendedUntil then
@@ -901,9 +909,11 @@ settings = readSettings()
 noctalia.setUpdateInterval(settings.poll_interval_ms)
 noctalia.log("cloudflare-warp: bootstrap ok schema=" .. State.SCHEMA)
 noctalia.state.watch(State.CHANNEL_COMMAND, onCommand)
-State.publish({ families = "malware" })
 -- The state channel survives a service reload, but an in-flight action does
 -- not; clear the flag so a reload during a mutation cannot disable the UI.
+-- `families` is not published here: the CLI never reports it back, so the
+-- channel keeps the last known value, and State.defaultStatus() already
+-- defaults a fresh channel to "malware".
 publish({ busy = false })
 readVersion()
 refreshStatus()
