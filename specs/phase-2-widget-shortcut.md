@@ -140,10 +140,10 @@ SVG-пара в Control Center в Phase 2 **не делается** — это �
 **B. Бар**
 
 - [ ] Виджет размещён на баре: видна **SVG**-иконка (не glyph) и текст `On`/`Off`.
-- [ ] `noctalia msg plugin code-warlord/cloudflare-warp:service all toggle` → в течение
+- [ ] `noctalia msg plugin ModernByte/cloudflare-warp:service all toggle` → в течение
       одного poll-интервала иконка и текст меняются на противоположные.
 - [ ] ЛК по виджету переключает WARP (проверить `warp-cli status`).
-- [ ] ПК по виджету открывает панель (`code-warlord/cloudflare-warp:panel`).
+- [ ] ПК по виджету открывает панель (`ModernByte/cloudflare-warp:panel`).
       Если панель не открывается — проверить `[widget.actions] right = "none"` в манифесте.
 - [ ] `compact_mode = true` → текста нет, иконка есть.
 - [ ] `show_text_in_bar = false` → текста нет; `compact_mode = false` не возвращает текст.

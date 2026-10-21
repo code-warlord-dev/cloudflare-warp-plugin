@@ -46,8 +46,8 @@ API-уровни кумулятивны: в манифесте указывае�
 
 | Поле | Значение |
 |------|----------|
-| id | `code-warlord/cloudflare-warp` |
-| author | `code-warlord` |
+| id | `ModernByte/cloudflare-warp` |
+| author | `Modern Byte` |
 | каталог | `cloudflare-warp/` (суффикс id = имя каталога, требование source-репозиториев) |
 
 Сообщество использует GitHub-хендл автора (`levi/warp`, `code_warlord/screenshot`,
@@ -289,7 +289,7 @@ noctalia plugins lint cloudflare-warp
 Exit code: `1` при наличии error, `0` иначе. Формат успеха:
 
 ```
-code-warlord/cloudflare-warp
+ModernByte/cloudflare-warp
   ok
 
 0 errors, 0 warnings
@@ -303,13 +303,13 @@ code-warlord/cloudflare-warp
 # имя каталога совпадает с суффиксом id
 noctalia msg plugins source add warpdev path /home/code_warlord/DEV/cloudflare-warp-plugin
 noctalia msg plugins list | grep cloudflare-warp
-noctalia msg plugins enable code-warlord/cloudflare-warp
-noctalia msg plugins disable code-warlord/cloudflare-warp
+noctalia msg plugins enable ModernByte/cloudflare-warp
+noctalia msg plugins disable ModernByte/cloudflare-warp
 noctalia msg plugins source remove warpdev
 ```
 
 Проверено: `source add` возвращает `ok`, плагин появляется в `plugins list` как
-`code-warlord/cloudflare-warp [warpdev] 0.1.0 disabled`, enable отвечает
+`ModernByte/cloudflare-warp [warpdev] 0.1.0 disabled`, enable отвечает
 `ok (exporting in background)`.
 
 Горячая перезагрузка: правки `.luau` подхватываются file-watcher’ом; изменения
@@ -364,7 +364,7 @@ noctalia msg plugins source remove warpdev
 ### Эмпирика `onExit` на сборке `5.3.0-1-dirty` (важно для acceptance)
 
 При `noctalia msg plugins disable` хост пишет в лог
-`[plugin-service] stopping service 'code-warlord/cloudflare-warp:service' (no longer active)`,
+`[plugin-service] stopping service 'ModernByte/cloudflare-warp:service' (no longer active)`,
 но Luau-хук `onExit(signal, reason)` **не вызывается** — строки `exit reason=disable` в логе нет.
 `onEnable()` при этом вызывается корректно (`cloudflare-warp: enabled`).
 

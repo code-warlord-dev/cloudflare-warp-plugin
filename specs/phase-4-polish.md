@@ -86,9 +86,9 @@ PY
 
 Команды выполняются на живом shell, лог — `~/.cache/noctalia/noctalia.log`.
 
-- [x] `noctalia msg plugins enable code-warlord/cloudflare-warp` → `ok …`.
-- [x] В логе есть `loaded plugin 'code-warlord/cloudflare-warp' (4 entries)` и
-      `started service 'code-warlord/cloudflare-warp:service'`.
+- [x] `noctalia msg plugins enable ModernByte/cloudflare-warp` → `ok …`.
+- [x] В логе есть `loaded plugin 'ModernByte/cloudflare-warp' (4 entries)` и
+      `started service 'ModernByte/cloudflare-warp:service'`.
 - [x] Нет ни одной строки `[plugin-i18n] plugin translation key … not found`,
       относящейся к нашим ключам:
       `grep -n "plugin translation key" ~/.cache/noctalia/noctalia.log | tail -5` → наших ключей нет.

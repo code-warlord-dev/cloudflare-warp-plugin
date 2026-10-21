@@ -16,7 +16,7 @@ Phases 0–4, QA PASS, reviewer APPROVE.
 ## Tasks
 
 1. Проверить компоновку source-репозитория: каталог `cloudflare-warp/` совпадает с
-   суффиксом id `code-warlord/cloudflare-warp`.
+   суффиксом id `ModernByte/cloudflare-warp`.
 2. `catalog.toml` (если репозиторий публикуется как source) с обязательными полями
    `id`, `name`, `plugin_api`; `version`, `author`, `license`, `icon`, `description`,
    `tags`, `dependencies` — по факту манифеста.
@@ -33,7 +33,7 @@ Phases 0–4, QA PASS, reviewer APPROVE.
 
 - [ ] `version = "1.0.0"`, `plugin_api = 24` (не выше).
 - [ ] `noctalia plugins lint cloudflare-warp` → `0 errors, 0 warnings`.
-- [ ] `noctalia msg plugins enable code-warlord/cloudflare-warp` на чистом профиле →
+- [ ] `noctalia msg plugins enable ModernByte/cloudflare-warp` на чистом профиле →
       лог без ошибок и без `plugin translation key … not found`.
 - [ ] `catalog.toml` (если есть) проходит проверку полей; `plugin_api` — положительное целое.
 - [ ] `thumbnail.webp` на месте, ≤ 1 МБ.

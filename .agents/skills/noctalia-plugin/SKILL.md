@@ -20,7 +20,7 @@ description: Domain knowledge for Noctalia 5.x Luau plugins — manifest, entrie
 
 | Поле | Значение |
 |------|----------|
-| id / каталог | `code-warlord/cloudflare-warp` / `cloudflare-warp/` |
+| id / каталог | `ModernByte/cloudflare-warp` / `cloudflare-warp/` |
 | `plugin_api` | **24** (модули 22 + argv `runAsync` 24) |
 | entries | `service`, `widget`, `shortcut`, `panel` |
 | state | `warp.status` (пишет service) / `warp.command` (пишут UI) |
@@ -88,8 +88,8 @@ end, 8000)   -- 3-й аргумент: timeout ms (проверено)
 
 ```bash
 noctalia plugins lint cloudflare-warp          # НЕ validate-plugin — такой команды нет
-noctalia msg plugin code-warlord/cloudflare-warp:service all refresh
-noctalia msg panel-toggle code-warlord/cloudflare-warp:panel
+noctalia msg plugin ModernByte/cloudflare-warp:service all refresh
+noctalia msg panel-toggle ModernByte/cloudflare-warp:panel
 tail -f ~/.cache/noctalia/noctalia.log
 ```
 

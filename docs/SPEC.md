@@ -8,7 +8,7 @@
 | Целевая платформа | Noctalia 5.x; проверено на `v5.3.0` (`plugin_api = 24`) |
 | Язык | Luau |
 | Внешняя зависимость | пакет `cloudflare-warp` (`warp-cli`, `warp-svc`) |
-| Plugin ID | `code-warlord/cloudflare-warp` |
+| Plugin ID | `ModernByte/cloudflare-warp` |
 | Каталог | `cloudflare-warp/` |
 | Аудит API | [API-NOTES.md](./API-NOTES.md) — обязателен к прочтению |
 
@@ -43,7 +43,7 @@ argv-форма `runAsync` (без shell). Телеметрия туннеля (
 | `shortcut` | `[[shortcut]]` | `shortcut.luau` | Плитка Control Center: glyph-пара, checked = connected. |
 | `panel` | `[[panel]]` | `panel.luau` | Детальная панель управления. |
 
-Полный id entry: `code-warlord/cloudflare-warp:<entry>`.
+Полный id entry: `ModernByte/cloudflare-warp:<entry>`.
 
 **`plugin_api = 24`** — минимум для относительных модулей (22) и argv-формы `runAsync` (24).
 Обоснование по уровням: [API-NOTES.md §1](./API-NOTES.md#1-plugin_api--24--почему-именно-24).
@@ -154,7 +154,7 @@ argv-форма `runAsync` (без shell). Телеметрия туннеля (
 ### 4.1. Сервис
 
 ```
-noctalia msg plugin code-warlord/cloudflare-warp:service all <event> [payload]
+noctalia msg plugin ModernByte/cloudflare-warp:service all <event> [payload]
 ```
 
 | Event | Payload | Поведение | С какой фазы |
@@ -180,10 +180,10 @@ noctalia msg plugin code-warlord/cloudflare-warp:service all <event> [payload]
 ### 4.2. Панель
 
 ```
-noctalia msg panel-toggle code-warlord/cloudflare-warp:panel
+noctalia msg panel-toggle ModernByte/cloudflare-warp:panel
 ```
 
-Внутри скрипта: `noctalia.togglePanel("code-warlord/cloudflare-warp:panel")`.
+Внутри скрипта: `noctalia.togglePanel("ModernByte/cloudflare-warp:panel")`.
 
 ### 4.3. Внутренний канал
 
@@ -333,11 +333,11 @@ Widget-scope (`[[widget.setting]]`) — только представление 
 ## 7. Манифест (каркас)
 
 ```toml
-id           = "code-warlord/cloudflare-warp"
+id           = "ModernByte/cloudflare-warp"
 name         = "Cloudflare WARP"
 version      = "0.1.0"
 plugin_api   = 24
-author       = "code-warlord"
+author       = "Modern Byte"
 license      = "MIT"
 icon         = "cloud-lock"
 description  = "Control Cloudflare WARP from the bar, Control Center and a dedicated panel."
@@ -466,7 +466,7 @@ barWidget.setVisible(true)
 | `unknown` | `assets/icons/warp-off.svg` | `tr("widget.text.unknown")` |
 
 - Fallback: `barWidget.setGlyph("cloud-lock")`, если файл иконки не найден/не отрисован.
-- `onClick()` → `noctalia.togglePanel("code-warlord/cloudflare-warp:panel")`.
+- `onClick()` → `noctalia.togglePanel("ModernByte/cloudflare-warp:panel")`.
 - `onRightClick()` → `warp.command = { seq, action = "toggle", source = "widget" }`
   (игнорировать при `busy`).
 - Tooltip — массив строк: status, mode, families (если известен), protocol, ip, error.
@@ -603,18 +603,18 @@ noctalia msg plugins source add warpdev path /home/code_warlord/DEV/cloudflare-w
 
 # 3. видимость и включение
 noctalia msg plugins list | grep cloudflare-warp
-noctalia msg plugins enable code-warlord/cloudflare-warp
+noctalia msg plugins enable ModernByte/cloudflare-warp
 
 # 4. IPC и панель
-noctalia msg plugin code-warlord/cloudflare-warp:service all refresh
-noctalia msg plugin code-warlord/cloudflare-warp:service all toggle
-noctalia msg panel-toggle code-warlord/cloudflare-warp:panel
+noctalia msg plugin ModernByte/cloudflare-warp:service all refresh
+noctalia msg plugin ModernByte/cloudflare-warp:service all toggle
+noctalia msg panel-toggle ModernByte/cloudflare-warp:panel
 
 # 5. наблюдение
 tail -f ~/.cache/noctalia/noctalia.log
 
 # 6. выключение и уборка
-noctalia msg plugins disable code-warlord/cloudflare-warp
+noctalia msg plugins disable ModernByte/cloudflare-warp
 noctalia msg plugins source remove warpdev
 ```
 

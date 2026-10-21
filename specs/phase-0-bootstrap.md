@@ -84,7 +84,7 @@ cloudflare-warp/
 Скопировать каркас из SPEC §7 без изменений, кроме `version` (должен быть `0.1.0`).
 Обязательные проверки:
 
-- `id = "code-warlord/cloudflare-warp"`, `author = "code-warlord"`;
+- `id = "ModernByte/cloudflare-warp"`, `author = "Modern Byte"`;
 - `plugin_api = 24` (не 17 и не выше);
 - `version = "0.1.0"`;
 - `dependencies = ["cloudflare-warp"]`;
@@ -188,9 +188,9 @@ Cloudflare от имени пользователя), установка чер�
 **A. Офлайн**
 
 - [ ] `cd /home/code_warlord/DEV/cloudflare-warp-plugin && noctalia plugins lint cloudflare-warp`
-      → exit 0, вывод `code-warlord/cloudflare-warp` / `ok` / `0 errors, 0 warnings`.
+      → exit 0, вывод `ModernByte/cloudflare-warp` / `ok` / `0 errors, 0 warnings`.
 - [ ] `python3 -c "import tomllib;d=tomllib.load(open('cloudflare-warp/plugin.toml','rb'));print(d['id'],d['plugin_api'],d['version'])"`
-      → `code-warlord/cloudflare-warp 24 0.1.0`.
+      → `ModernByte/cloudflare-warp 24 0.1.0`.
 - [ ] `grep -RnE "runAsync|noctalia\.http|io\.popen|os\.execute" cloudflare-warp --include=*.luau`
       → пусто (Phase 0 не порождает процессов).
 - [ ] `grep -Rn "state\." cloudflare-warp --include=*.luau | grep -v "lib/state.luau"` → пусто.
@@ -204,32 +204,32 @@ Cloudflare от имени пользователя), установка чер�
 - [ ] `noctalia msg plugins source add warpdev path /home/code_warlord/DEV/cloudflare-warp-plugin`
       → `ok`.
 - [ ] `noctalia msg plugins list | grep cloudflare-warp`
-      → `code-warlord/cloudflare-warp [warpdev] 0.1.0 disabled`.
-- [ ] `noctalia msg plugins enable code-warlord/cloudflare-warp` → `ok …`.
+      → `ModernByte/cloudflare-warp [warpdev] 0.1.0 disabled`.
+- [ ] `noctalia msg plugins enable ModernByte/cloudflare-warp` → `ok …`.
 - [ ] Через 2 с в `~/.cache/noctalia/noctalia.log` есть:
-      `loaded plugin 'code-warlord/cloudflare-warp' (4 entries)`;
-      `started service 'code-warlord/cloudflare-warp:service'`;
+      `loaded plugin 'ModernByte/cloudflare-warp' (4 entries)`;
+      `started service 'ModernByte/cloudflare-warp:service'`;
       `[script-runtime] cloudflare-warp: bootstrap ok schema=1`.
-- [ ] В логе нет строк, содержащих `code-warlord/cloudflare-warp`, со словами
+- [ ] В логе нет строк, содержащих `ModernByte/cloudflare-warp`, со словами
       `error`, `ERR`, `disabled after repeated timeouts`.
 - [ ] В логе нет `[plugin-i18n] plugin translation key … not found` для наших ключей.
 
 **C. UI**
 
-- [ ] Виджет `code-warlord/cloudflare-warp:widget` добавляется на бар через
+- [ ] Виджет `ModernByte/cloudflare-warp:widget` добавляется на бар через
       Settings → Bar: показывает glyph `cloud-lock` и текст `WARP`.
 - [ ] `compact_mode = true` → текст исчезает, glyph остаётся (применяется после
       переоткрытия настроек/перестройки виджета).
 - [ ] Shortcut виден в Control Center, подпись из `shortcut.off`, иконка `cloud-lock`,
       не активен.
-- [ ] `noctalia msg panel-toggle code-warlord/cloudflare-warp:panel` → exit 0, панель
+- [ ] `noctalia msg panel-toggle ModernByte/cloudflare-warp:panel` → exit 0, панель
       открывается с заголовком и placeholder; повторная команда закрывает.
       (Ошибка `unknown panel` = FAIL.)
 
 **D. Выключение и чистота**
 
-- [ ] `noctalia msg plugins disable code-warlord/cloudflare-warp` → `ok`, в логе
-      `[plugin-service] stopping service 'code-warlord/cloudflare-warp:service' (no longer active)`.
+- [ ] `noctalia msg plugins disable ModernByte/cloudflare-warp` → `ok`, в логе
+      `[plugin-service] stopping service 'ModernByte/cloudflare-warp:service' (no longer active)`.
       На сборке `5.3.0-1-dirty` хост **не** вызывает Luau-хук `onExit` при disable
       (см. `docs/API-NOTES.md` §8); строка `exit reason=disable` здесь не ожидается.
 - [ ] После disable в логе нет новых строк нашего плагина (никаких «фоновых» процессов).

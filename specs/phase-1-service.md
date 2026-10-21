@@ -77,7 +77,7 @@ Phase 0 (манифест, entry-файлы, `lib/state.luau`).
 
 ## IPC contract
 
-Target: `code-warlord/cloudflare-warp:service`, target-селектор **`all`**.
+Target: `ModernByte/cloudflare-warp:service`, target-селектор **`all`**.
 
 | Event | Payload | Поведение | Реализуется |
 |-------|---------|-----------|-------------|
@@ -275,7 +275,7 @@ warp-cli --accept-tos --json --no-paginate --no-ansi status
 - [ ] Enable → в течение ~4 с в логе
       `cloudflare-warp: status phase=connected` (или фактическая фаза), и она совпадает с
       `warp-cli … status`.
-- [ ] `noctalia msg plugin code-warlord/cloudflare-warp:service all refresh` →
+- [ ] `noctalia msg plugin ModernByte/cloudflare-warp:service all refresh` →
       `ok: dispatched 1`, в логе `cloudflare-warp: ipc refresh payload=` и
       `cloudflare-warp: heartbeat … at=<n>`; `at` при повторном refresh растёт.
 - [ ] Heartbeat появляется не чаще ~раз в 60 с (20 тиков) и не спамит лог.

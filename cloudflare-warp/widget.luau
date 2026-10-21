@@ -51,7 +51,7 @@ local function applyStatus(value)
 end
 
 function onClick()
-  noctalia.togglePanel("code-warlord/cloudflare-warp:panel")
+  noctalia.togglePanel("ModernByte/cloudflare-warp:panel")
 end
 
 function onRightClick()

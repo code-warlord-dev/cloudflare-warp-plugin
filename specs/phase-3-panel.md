@@ -208,7 +208,7 @@ end)
 
 **B. Открытие**
 
-- [ ] `noctalia msg panel-toggle code-warlord/cloudflare-warp:panel` → exit 0, панель 360×700.
+- [ ] `noctalia msg panel-toggle ModernByte/cloudflare-warp:panel` → exit 0, панель 360×700.
 - [ ] ПК по bar-виджету открывает ту же панель.
 - [ ] Escape и кнопка Close закрывают; повторный toggle тоже.
 - [ ] Панель не открывает вторую копию при повторном toggle.
