@@ -1,9 +1,10 @@
 # Phase 3 — Panel
 
-> **Visual layer superseded (0.4.1):** актуальная редакция панели — 400×672, без
-> `ui.scroll`, с full-bleed banner, анимациями и Families = Malware default — в
-> [phase-3-panel-redesign.md](./phase-3-panel-redesign.md). Фрагменты ниже (manifest
-> 360×700, scroll, unknown-caption) — **историческая редакция 0.4.0**. State/IPC/actions
+> **Visual layer superseded (0.4.1 → 0.4.3):** актуальная редакция панели — 400×734,
+> без `ui.scroll`, с full-bleed анимированным баннером (27 кадров, 160 px) и
+> Families = Malware default — в [phase-3-panel-redesign.md](./phase-3-panel-redesign.md)
+> и [docs/DESIGN-PANEL.md](../docs/DESIGN-PANEL.md). Фрагменты ниже (manifest 360×700,
+> scroll, unknown-caption) — **историческая редакция 0.4.0**. State/IPC/actions
 > остаются в силе.
 
 **Target version:** `0.4.0` (MINOR) + `0.4.1` (PATCH redesign)

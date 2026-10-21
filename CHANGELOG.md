@@ -7,6 +7,78 @@ Versioning follows [SemVer](https://semver.org/) — see [VERSIONING.md](./VERSI
 
 ---
 
+## [0.4.3] - 2026-10-21
+
+### Added
+- Animated hero banner derived from the owner-provided `assets/wGjQl.gif`: 27 WebP frames
+  (`assets/banner/frame-00.webp` … `frame-26.webp`, 800×320) with a baked saturation ramp
+  from 20% color (frame 0) to full color (frame 26) and a baked bottom alpha fade that
+  blends the banner into the panel body. The 2.5:1 asset maps exactly to the 400×160
+  display box, so the full GIF width is preserved and nothing is cropped left or right.
+  Opening the panel with a live tunnel
+  (connected/connecting) plays 0 → 26 at the GIF's native 100 ms/frame and holds the last
+  frame; leaving connected/connecting for disconnecting/disconnected plays 26 → 0 and
+  fades the color back down to 20%, keeping the banner visibly tinted when disconnected.
+  Opening the panel while WARP is off (or in an error phase) shows frame 0 statically
+  with no animation, so the banner always matches the phase.
+  The sequence stops three frames before the GIF end per the owner's
+  request; the ramp is remapped over the used frames so frame 26 is fully saturated.
+- Banner playback runs on `panel.setNeedsFrameTick` / `onFrameTick` (33 ms ticks) and
+  stops at both endpoints; the static frame persists until the next transition.
+- Network identity is refreshed after every successful connect and disconnect: the
+  service probes `cdn-cgi/trace` immediately and once more about 5 s later, when the
+  tunnel route has settled, instead of waiting for the 60 s trace cycle. Mode and
+  Protocol changes trigger the same immediate + delayed probe.
+- Trace probing prefers an argv-only `curl` call
+  (`--silent --show-error --fail --max-time 10 --connect-timeout 5`) when the binary
+  exists and falls back to `noctalia.http`; both paths feed the same parser, circuit
+  breaker and in-flight guard.
+- The `connected` hero status now uses the native Tabler `shield-check` glyph in the
+  success accent (`#3BE3A3`) instead of the ambiguous busy arc, so the OK state reads at
+  a glance without adding a custom asset.
+
+### Changed
+- The bar widget now opens the panel on left click and sends `toggle` on right click;
+  the previous bindings were the other way around.
+- Banner height 96 → 160 px (wrapper 82 → 146 px); the panel was raised 672 → 734 px so
+  the full layout, including the footer, fits without scrolling.
+- The `disconnected` hero accent is a muted ember red-orange (`#C75B43`) instead of the
+  brand orange, so the status block belongs to the banner's dimmed palette instead of
+  competing with it.
+- The connecting/disconnecting activity indicator is a five-bar sine wave (3 px bars,
+  4–14 px tall, 900 ms period, opacity 0.45–1.0) driven by the existing frame ticks,
+  replacing the running progress bar.
+- The hero status icon no longer swaps to `loader-2` while the service is busy; activity
+  is already shown by the transition wave and dimmed controls. Other phases keep
+  their phase glyph at 22 px.
+- The header Refresh button always uses the standard `refresh` glyph and signals feedback
+  only through its opacity pulse; the static `loader-2` arc looked like a broken ring.
+
+### Fixed
+- Stale `busy` no longer freezes the panel: the service clears the flag on reload and
+  whenever a poll sees no action in flight. A service hot reload during a mutation used
+  to leave `busy = true` forever, disabling power, Mode, Protocol, DNS filtering and
+  Refresh with no way to recover from the UI.
+- Refresh is always available while no refresh feedback is running; it no longer waits
+  for `busy`, so it also serves as a recovery action.
+- The panel footer is no longer clipped at the bottom edge: the height added for the
+  taller banner covers the content plus the host's bottom inset.
+- The banner is now a single `ui.image` whose `path` swaps per frame; the old static
+  `hero-banner-color.png` / `hero-banner-idle.png` assets are no longer referenced by the
+  panel.
+- Banner opacity is entrance-only now; connected vs disconnected is expressed solely by
+  the frame sequence's saturation, while the phase accent lives in the hero card.
+- The connecting phase no longer flashes and collapses back to «Отключено»: after a
+  successful `connect`/`disconnect` the service holds the transitional phase and `busy`
+  until a status poll observes the target phase or a 30 s safety timeout expires, so the
+  panel goes «Отключено» → «Подключение…» → «Подключено» without an intermediate jump.
+- Network identity updates on this host again: `noctalia.http` requests to
+  `cdn-cgi/trace` consistently timed out (curl=28, empty body, no timeout option), so
+  the service switched to the argv-only `curl` probe above. Trace failures now log the
+  exit code and stderr once and every fifth retry instead of only a generic status.
+
+---
+
 ## [0.4.2] - 2026-10-20
 
 ### Changed

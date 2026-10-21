@@ -177,7 +177,7 @@ error: the following required arguments were not provided:
 
 ---
 
-## 5. Trace вместо `curl`
+## 5. Trace: argv-`curl` с fallback на `noctalia.http`
 
 `warp=on|plus|off`, публичный egress `ip`, страна `loc`, edge `colo` отдаёт
 `https://www.cloudflare.com/cdn-cgi/trace`:
@@ -193,20 +193,33 @@ warp=on
 gateway=off
 ```
 
-Реализация — `noctalia.http({ url = … }, cb)`, **без** дочернего `curl`.
-Это убирает один процесс из trust surface и один shell-слой.
+**Эмпирика 5.3.0 (K-08).** `noctalia.http({ url = … })` на dev-хосте стабильно не
+завершается: запрос висит ~30 с, возвращает пустое тело (`curl=28`), опции таймаута в
+сигнатуре нет. Тот же URL через системный `curl` отвечает мгновенно. Поэтому
+реализация — argv-only `curl`, а `noctalia.http` остаётся fallback'ом:
 
 ```luau
-noctalia.http({ url = "https://www.cloudflare.com/cdn-cgi/trace" }, function(res)
+noctalia.runAsync({
+  "curl", "--silent", "--show-error", "--fail",
+  "--max-time", "10", "--connect-timeout", "5", TRACE_URL,
+}, cb, 12000)
+
+-- если бинарника нет или запуск не удался:
+noctalia.http({ url = TRACE_URL }, function(res)
   -- res = { ok = bool, status = number, body = string }
 end)
 ```
 
-В проверенной сигнатуре (`{ url, method?, headers?, body? }`) поля таймаута нет.
-Защита — in-flight guard + игнор результата, если он старше одного `trace_interval_s`.
+Обе ветки сходятся в один парсер (`k=v`), один in-flight guard, один circuit breaker и
+один rate-limited лог ошибок (exit code + `stderr` при первой и каждой пятой подряд
+неудаче). Результат старше одного `trace_interval_s` игнорируется.
 
-`noctalia.http` появился на ранних уровнях (в runtime-документации — с 9), так что на выбор 24
-не влияет.
+Trust surface: один фиксированный argv без payload и shell-слоя. Это осознанный
+компромисс — без него identity на этом хосте не обновляется вообще; сетевой запрос
+по-прежнему один (curl **или** http, не оба).
+
+`noctalia.http` появился на ранних уровнях (в runtime-документации — с 9), argv-форма
+`runAsync` требует 24, так что уровень API не меняется.
 
 ---
 
@@ -328,7 +341,20 @@ noctalia msg plugins source remove warpdev
 - **Отрицательный padding работает.** `Flex::setPadding` присваивает значение напрямую,
   layout использует отрицательные инсеты; root с `paddingH = -14` отменяет боковой
   host-inset, а wrapper с `paddingV = -14` позволяет баннеру выйти на верхний край
-  панели (проверено live 0.4.1, повторно 0.4.2).
+  панели (проверено live 0.4.1, повторно 0.4.2 и 0.4.3 с баннером 160 px).
+- **`ui.image` — статическая текстура.** Хост грузит один файл через
+  `Image::setSourceFile`; анимированный GIF показывает только первый кадр
+  (`decodeAnimatedGif` существует лишь для desktop stickers). Пропов `tint`,
+  `saturation`, `z-index` нет: whitelist — `width`, `height`, `flexGrow`, `opacity`,
+  `path`, `radius`, `fit`, `border`, `borderWidth`, `onClick`, `onHover`, `tooltip`.
+  Смена `path` в реконсилере перезагружает текстуру синхронно; `targetSize =
+  max(width,height)*3` (для 400×160 — 1200 px), поэтому 800 px исходники не
+  апскейлятся сильнее нужного. Вывод 0.4.3: анимация — смена `path` по frame ticks,
+  а насыщенность запечена в WebP-кадры.
+  **SVG поддерживается:** `ui.image` отрисовывает SVG-файлы (проверено live 0.4.3;
+  `ldd` хоста показывает `librsvg-2`), так что двухцветную иконку можно сделать
+  ассетом. Hero использует нативный Tabler glyph `shield-check`, чтобы наследовать
+  цвет акцента без отдельного файла.
 - **Frame ticks.** `panel.setNeedsFrameTick(true)` запрашивает кадры; глобальный
   `onFrameTick(deltaMs)` вызывается, пока флаг включён; кадры коалесцируются, тики
   прекращаются при закрытии панели. В idle флаг нужно выключать вручную.
@@ -454,7 +480,8 @@ families, protocol) обязан идти только через argv и тол
 | Не делать | Почему |
 |-----------|--------|
 | `noctalia validate-plugin` | команды нет |
-| `curl` для trace | лишний процесс; есть `noctalia.http` |
+| `curl` для trace | лишний процесс — но `noctalia.http` на 5.3.0 таймаутит (K-08); используем argv-`curl`, http — fallback |
+| `noctalia.http` без fallback | на dev-хосте trace не обновляется (K-08) |
 | shell-строка с payload | инъекция; использовать argv |
 | `warp-cli dns families` без аргумента как getter | exit 2, значения не отдаёт |
 | `plugin_api = 17` | нет модулей (22) и argv (24) |
