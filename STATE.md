@@ -11,12 +11,12 @@
 | Поле | Значение |
 |------|----------|
 | **Plugin version** | `1.0.0` — публичный релиз: https://github.com/ModernByte/cloudflare-warp (tag `v1.0.0`) |
-| **Roadmap phase** | Phase 5 — Public: репозиторий организации опубликован; вики смонтирована, пуш ждёт инициализации wiki-backend на GitHub |
+| **Roadmap phase** | Phase 5 — Public: репозиторий и вики опубликованы (GitHub wiki, 5 разделов × EN/RU) |
 | **Branch** | `main` |
 | **Remote** | https://github.com/code-warlord-dev/cloudflare-warp-plugin |
 | **Last merge** | `2b455a6` Merge PR #9 — ModernByte rebrand v1.0.0 (dev tag `v1.0.0`) |
-| **Blockers** | GitHub лениво создаёт git-репозиторий вики только после первой страницы через Web UI — нужен один клик владельца |
-| **Next action** | Владелец открывает https://github.com/ModernByte/cloudflare-warp/wiki и создаёт первую страницу → оркестратор пушит 10 bilingual-страниц из `/home/code_warlord/DEV/wikistage`; затем — upstream PR в community-plugins только по отдельному решению владельца |
+| **Blockers** | none |
+| **Next action** | Phase 5 закрыт кроме upstream: PR в community-plugins — только по отдельному решению владельца; ручные проверки K-17/K-18/K-19 за владельцем; social-preview репо можно задать той же hero-картинкой через Settings (Web UI) |
 
 ---
 
@@ -84,7 +84,7 @@
 | qa | P5 live swap: disable старый id → enable `ModernByte/cloudflare-warp 0.5.0` (4 entries, service с DEV-пути), refresh/panel чисты, ERR нет; старый_instances выключен, двойного поллинга нет | done | PASS; хост оставлен на новом id |
 | docs+implementer | P5-T5 публичный staging `~/DEV/modernbyte-cloudflare-warp`: код из HEAD, whitelist-ассеты, README EN/RU, user-facing CHANGELOG, scrub-комментарии, grep-гейт чист, lint staging 0/0, comment-stripped md5 == dev | done | 49 файлов, 3.2 MB |
 | orchestrator | P5-T6 публикация: `gh repo create ModernByte/cloudflare-warp --public`, один commit `fa3c52f`, tag `v1.0.0`, topics; upstream PR НЕ отправлен | done | https://github.com/ModernByte/cloudflare-warp |
-| docs | P5-T7 вики 5×2: Home / Installation / Architecture / IPC Reference / Troubleshooting (EN+RU, switch-links, без dev/AI-терминов) | staged | `/home/code_warlord/DEV/wikistage` — пуш после инициализации wiki владельцем |
+| docs | P5-T7 вики 5×2: Home / Installation / Architecture / IPC Reference / Troubleshooting (EN+RU, switch-links, без dev/AI-терминов) | done | опубликована в GitHub wiki (`63d7bdb`); README-ссылки ведут на /wiki; hero `assets/hero.jpg` в README |
 
 ---
 
@@ -150,7 +150,7 @@
 - [x] Release 0.5.0: PR #8 merged `9f27d96` в `main`, tag `v0.5.0` запушен
 - [x] Phase 5: ребренд id → `ModernByte/cloudflare-warp` (PR #9, dev tag `v1.0.0`), QA swap live PASS
 - [x] Phase 5: публичный репозиторий **https://github.com/ModernByte/cloudflare-warp** опубликован — public, один commit `fa3c52f`, tag `v1.0.0`, 49 файлов / 3.2 MB, только пользовательский контент (specs/docs/.agents не входят), grep-гейт на dev/AI-термины чист, lint staging 0/0, поведение байт-в-байт == dev (comment-stripped md5)
-- [x] Phase 5: вики 5 разделов × 2 языка смонтирована в `~/DEV/wikistage` (10 страниц, switch-links, troubleshooting + IPC-таблица по фактическому dispatch) — пуш заблокирован ленивой инициализацией wiki-бэкенда GitHub (нужно создать первую страницу через Web UI)
+- [x] Phase 5: вики 5 разделов × 2 языка опубликована в GitHub wiki репозитория (10 страниц с switch-links, troubleshooting + IPC-таблица по фактическому dispatch); README EN/RU ведут на /wiki, гейты на dev/AI-термины и CJK чистые
 
 
 ---

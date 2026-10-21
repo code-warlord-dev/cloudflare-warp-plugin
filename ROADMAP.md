@@ -120,7 +120,7 @@
 - [x] Публичный репозиторий: public, один чистый commit, tag `v1.0.0`, whitelist-состав, grep-гейт на dev/AI-термины
 - [x] README.md (EN) + README.ru.md, user-facing CHANGELOG, LICENSE MIT © Modern Byte
 - [x] Каталог-готовность: `thumbnail.webp` в корне плагина
-- [~] Вики 5 разделов × 2 языка — страницы смонтированы (`~/DEV/wikistage`), пуш после инициализации wiki-бэкенда владельцем через Web UI
+- [x] Вики 5 разделов × 2 языка — опубликована в GitHub wiki (Home / Installation / Architecture / IPC Reference / Troubleshooting, switch-links EN/RU)
 - [ ] Явный список всех `runAsync` и network calls — в README/PR body (в README есть; в upstream PR — при подаче)
 - [ ] PR в `noctalia-dev/community-plugins` + прохождение CI (pending owner)
 
