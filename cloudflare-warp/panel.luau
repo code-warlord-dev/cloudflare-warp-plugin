@@ -209,10 +209,20 @@ local function controlsEnabled()
   return status.available == true and status.busy ~= true and status.registered ~= false
 end
 
+-- A held transition deliberately keeps busy set, so power ignores busy there:
+-- it is the escape hatch (toggle maps connecting/disconnecting to disconnect).
 local function powerEnabled()
   local phase = status.phase
-  return status.available == true and status.busy ~= true and status.registered ~= false
-    and phase ~= "unregistered" and phase ~= "unavailable"
+  if status.available ~= true or status.registered == false then
+    return false
+  end
+  if phase == "unregistered" or phase == "unavailable" then
+    return false
+  end
+  if isTransitionPhase() then
+    return true
+  end
+  return status.busy ~= true
 end
 
 local function traceIp()
@@ -495,7 +505,7 @@ local function onCopyIp()
     return
   end
   local copied = noctalia.copyToClipboard(ip, "text/plain")
-  if copied == false then
+  if copied ~= true then
     return
   end
   copiedUntilMs = nowMs() + COPY_FEEDBACK_MS
