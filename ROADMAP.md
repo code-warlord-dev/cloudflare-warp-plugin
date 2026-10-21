@@ -111,17 +111,22 @@
 
 ## Phase 5 — Public 1.0.0
 
-**Цель:** PR в `noctalia-dev/community-plugins`.
+**Цель (решение владельца 2026-10-21):** публичный релиз от организации **ModernByte** —
+репо `ModernByte/cloudflare-warp` (id `ModernByte/cloudflare-warp`), только пользовательский
+контент (EN основной + RU, без dev-артефактов), вики 5×2; PR в `noctalia-dev/community-plugins` —
+позже, отдельным одобрением владельца.
 
-- [ ] Catalog entry / thumbnail
-- [ ] PR по шаблону (см. templates/PR.md)
-- [ ] CI `community-plugins` проходит (полная валидация манифеста, переводов, thumbnail)
-- [ ] Явный список всех `runAsync` и network calls в PR body
-- [ ] Semver `1.0.0`
+- [x] Ребренд id/author в dev-репо (PR #9, `ModernByte/cloudflare-warp`, author `Modern Byte`)
+- [x] Публичный репозиторий: public, один чистый commit, tag `v1.0.0`, whitelist-состав, grep-гейт на dev/AI-термины
+- [x] README.md (EN) + README.ru.md, user-facing CHANGELOG, LICENSE MIT © Modern Byte
+- [x] Каталог-готовность: `thumbnail.webp` в корне плагина
+- [~] Вики 5 разделов × 2 языка — страницы смонтированы (`~/DEV/wikistage`), пуш после инициализации wiki-бэкенда владельцем через Web UI
+- [ ] Явный список всех `runAsync` и network calls — в README/PR body (в README есть; в upstream PR — при подаче)
+- [ ] PR в `noctalia-dev/community-plugins` + прохождение CI (pending owner)
 
-**DoD:** merged в community-plugins (или готов к merge).
+**DoD:** репозиторий организации опубликован и документирован; community-plugins — отдельный gate владельца.
 
-**Bump:** `1.0.0` (MAJOR — первый stable public)
+**Bump:** `1.0.0` (MAJOR — первый stable public + ломающая смена id)
 
 ---
 

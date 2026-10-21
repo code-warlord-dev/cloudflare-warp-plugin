@@ -10,13 +10,13 @@
 
 | Поле | Значение |
 |------|----------|
-| **Plugin version** | `1.0.0` — dev `v1.0.0` released; публичный репо ModernByte — в работе |
-| **Roadmap phase** | Phase 5 — Public: id-ребренд готов, публикация в ModernByte/cloudflare-warp + вики |
-| **Branch** | `feat/phase-5-public` |
+| **Plugin version** | `1.0.0` — публичный релиз: https://github.com/ModernByte/cloudflare-warp (tag `v1.0.0`) |
+| **Roadmap phase** | Phase 5 — Public: репозиторий организации опубликован; вики смонтирована, пуш ждёт инициализации wiki-backend на GitHub |
+| **Branch** | `main` |
 | **Remote** | https://github.com/code-warlord-dev/cloudflare-warp-plugin |
 | **Last merge** | `2b455a6` Merge PR #9 — ModernByte rebrand v1.0.0 (dev tag `v1.0.0`) |
-| **Blockers** | none |
-| **Next action** | Сборка и публикация публичного репо ModernByte/cloudflare-warp (staging → репозиторий организации → вики EN/RU) из чистого дерева 1.0.0; upstream PR в community-plugins — только по отдельному решению владельца |
+| **Blockers** | GitHub лениво создаёт git-репозиторий вики только после первой страницы через Web UI — нужен один клик владельца |
+| **Next action** | Владелец открывает https://github.com/ModernByte/cloudflare-warp/wiki и создаёт первую страницу → оркестратор пушит 10 bilingual-страниц из `/home/code_warlord/DEV/wikistage`; затем — upstream PR в community-plugins только по отдельному решению владельца |
 
 ---
 
@@ -82,6 +82,9 @@
 | implementer | P5-T1 ребренд id: `ModernByte/cloudflare-warp`, author `Modern Byte`, адрес `:panel` в widget, README/SPEC/skills/Quick commands; dependencies (пакет) не тронут | done | `feat/phase-5-public` |
 | reviewer | P5: APPROVE — dependencies целы, old id в cloudflare-warp/ пуст, поведение не изменено, lint под новым id 0/0 | done | — |
 | qa | P5 live swap: disable старый id → enable `ModernByte/cloudflare-warp 0.5.0` (4 entries, service с DEV-пути), refresh/panel чисты, ERR нет; старый_instances выключен, двойного поллинга нет | done | PASS; хост оставлен на новом id |
+| docs+implementer | P5-T5 публичный staging `~/DEV/modernbyte-cloudflare-warp`: код из HEAD, whitelist-ассеты, README EN/RU, user-facing CHANGELOG, scrub-комментарии, grep-гейт чист, lint staging 0/0, comment-stripped md5 == dev | done | 49 файлов, 3.2 MB |
+| orchestrator | P5-T6 публикация: `gh repo create ModernByte/cloudflare-warp --public`, один commit `fa3c52f`, tag `v1.0.0`, topics; upstream PR НЕ отправлен | done | https://github.com/ModernByte/cloudflare-warp |
+| docs | P5-T7 вики 5×2: Home / Installation / Architecture / IPC Reference / Troubleshooting (EN+RU, switch-links, без dev/AI-терминов) | staged | `/home/code_warlord/DEV/wikistage` — пуш после инициализации wiki владельцем |
 
 ---
 
@@ -145,6 +148,9 @@
 - [x] Phase 4 (0.5.0): аудит user-facing строк → паритет en/ru 98 ключей; 8 errorCode с текстом+действием на двух языках; тултип бара локализует mode/families/protocol и ошибку; панель показывает перевод ошибки и в `unknown`-фазе; README переписан по коду и самодостаточен; `thumbnail.webp` 1280×720/64 KB
 - [x] Phase 4 гейты: reviewer APPROVE (minor-подпись README исправлена), QA-матрица A–F PASS с фикстурой `daemon-down` (восстановлена byte-exact), lint 0/0, trust-грепы пустые; MANUAL за владельцем: переключение языка хоста ru/en
 - [x] Release 0.5.0: PR #8 merged `9f27d96` в `main`, tag `v0.5.0` запушен
+- [x] Phase 5: ребренд id → `ModernByte/cloudflare-warp` (PR #9, dev tag `v1.0.0`), QA swap live PASS
+- [x] Phase 5: публичный репозиторий **https://github.com/ModernByte/cloudflare-warp** опубликован — public, один commit `fa3c52f`, tag `v1.0.0`, 49 файлов / 3.2 MB, только пользовательский контент (specs/docs/.agents не входят), grep-гейт на dev/AI-термины чист, lint staging 0/0, поведение байт-в-байт == dev (comment-stripped md5)
+- [x] Phase 5: вики 5 разделов × 2 языка смонтирована в `~/DEV/wikistage` (10 страниц, switch-links, troubleshooting + IPC-таблица по фактическому dispatch) — пуш заблокирован ленивой инициализацией wiki-бэкенда GitHub (нужно создать первую страницу через Web UI)
 
 
 ---
