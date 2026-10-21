@@ -10,13 +10,13 @@
 
 | Поле | Значение |
 |------|----------|
-| **Plugin version** | `1.0.0` (release via PR #9; публичный репо ModernByte — в работе) |
+| **Plugin version** | `1.0.0` — dev `v1.0.0` released; публичный репо ModernByte — в работе |
 | **Roadmap phase** | Phase 5 — Public: id-ребренд готов, публикация в ModernByte/cloudflare-warp + вики |
 | **Branch** | `feat/phase-5-public` |
 | **Remote** | https://github.com/code-warlord-dev/cloudflare-warp-plugin |
-| **Last merge** | `9f27d96` Merge PR #8 — polish & i18n v0.5.0 (tag `v0.5.0` pushed) |
+| **Last merge** | `2b455a6` Merge PR #9 — ModernByte rebrand v1.0.0 (dev tag `v1.0.0`) |
 | **Blockers** | none |
-| **Next action** | Merge PR #9 → tag `v1.0.0`; затем сборка публичного репо ModernByte/cloudflare-warp (staging → публикация → вики EN/RU); upstream PR в community-plugins — только по отдельному решению владельца |
+| **Next action** | Сборка и публикация публичного репо ModernByte/cloudflare-warp (staging → репозиторий организации → вики EN/RU) из чистого дерева 1.0.0; upstream PR в community-plugins — только по отдельному решению владельца |
 
 ---
 
