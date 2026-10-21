@@ -210,7 +210,7 @@ local function controlsEnabled()
 end
 
 -- A held transition deliberately keeps busy set, so power ignores busy there:
--- it is the escape hatch (toggle maps connecting/disconnecting to disconnect).
+-- it is the escape hatch (toggle maps connecting -> disconnect, disconnecting -> connect).
 local function powerEnabled()
   local phase = status.phase
   if status.available ~= true or status.registered == false then

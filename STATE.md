@@ -10,13 +10,13 @@
 
 | Поле | Значение |
 |------|----------|
-| **Plugin version** | `0.4.3` (working tree, release pending) |
+| **Plugin version** | `0.4.3` (release via PR #7) |
 | **Roadmap phase** | Phase 3 — Panel **done** (0.4.0 + redesign v2 0.4.1 + padding 0.4.2 + animated banner 0.4.3) |
-| **Branch** | `main` |
+| **Branch** | `feat/phase-3-banner` |
 | **Remote** | https://github.com/code-warlord-dev/cloudflare-warp-plugin |
 | **Last merge** | `ae2fe96` Merge PR #6 — panel padding v0.4.2 (origin/main) |
 | **Blockers** | none |
-| **Next action** | Owner live-test: реальный connect/disconnect — удержание «Подключение…»/«Отключение…» и обновление identity (K-18); затем sign-off, screenshots (K-17), release 0.4.3 |
+| **Next action** | Merge PR #7 → tag `v0.4.3`; owner live-test K-18 (реальный connect/disconnect hold+identity) и досъёмка скриншотов K-17; затем Phase 4 (0.5.0) |
 
 ---
 
@@ -69,6 +69,9 @@
 | implementer | Fix: identity не обновлялась — trace переведён на argv-only `curl` (http таймаутит, K-08), refresh также после set-mode/set-protocol | done | `service.luau`, `lib/commands.luau`; trace live-проверен, IP сменился |
 | reviewer | Self-review раунд 3: hold не блокирует поллинг, curl argv без payload, fallback на http, circuit breaker/in-flight сохранены | done | APPROVE; lint 0/0 |
 | docs | Синхронизация под раунд 3: CHANGELOG, SPEC §5.5/§8.1, API-NOTES, STATE | done | — |
+| reviewer | Раунд 4 (`74ba6c7`/`b2907dc`): блокер — формулировка CHANGELOG про Copy IP противоречит строгой `copied ~= true` в коде (код SPEC-соответствует); minor — комментарий panel описывает неверный маппинг toggle | done | REQUEST_CHANGES |
+| implementer | Фикс-раунд 4: CHANGELOG приведён к фактическому strict-поведению, комментарий `panel.luau` — к реальному маппингу (`connecting→disconnect`, `disconnecting→connect`); рантайм не тронут, lint 0/0 | done | working tree |
+| qa | Live-гейты 0.4.3: lint 0/0; фикстур нет; `[warpdev] 0.4.3 enabled`; IPC refresh + panel open/close без ERR; WARP не мутировался | done | PASS |
 
 ---
 
@@ -127,6 +130,8 @@
 - [x] Fix round 3 — refresh identity после успешных set-mode/set-protocol (сразу + повтор через ~5 с)
 - [x] Trace live: принудительный refresh сменил IP `104.28.244.142` → `2a09:bac5:5983:2432::39b:ee`, время trace обновилось; три прогона без ошибок
 - [x] Lint 0/0 после раунда 3; production-сервис восстановлен, QA-фикстуры отсутствуют
+- [x] Release-раунд 4: reviewer REQUEST_CHANGES (CHANGELOG про Copy IP противоречил строгой `copied ~= true`; комментарий о маппинге toggle) → CHANGELOG/комментарий приведены к shipped-поведению, рантайм не тронут
+- [x] QA-гейты 0.4.3: lint 0/0, исходники чистые от фикстур, `[warpdev] 0.4.3 enabled`, IPC refresh + panel open/close без ERR, WARP не мутировался
 
 
 ---
