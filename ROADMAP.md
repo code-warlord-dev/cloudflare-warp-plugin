@@ -2,7 +2,7 @@
 
 Статус: **Active**
 
-Текущая версия: `0.4.3` (Phase 3, animated banner)
+Текущая версия: `0.5.0` (Phase 4, Polish & i18n)
 
 Целевая первая публичная: `1.0.0`
 
@@ -95,13 +95,13 @@
 
 **Цель:** готовность к community-plugins.
 
-- [ ] Полные `en.json` + `ru.json`
-- [ ] Все settings schema + label_key
-- [ ] Error UX (daemon, not installed, unregistered)
-- [ ] Auto-trace + interval
-- [ ] Thumbnail / preview
-- [ ] README (install, IPC examples, known limits)
-- [ ] `luau-analyze` clean
+- [x] Полные `en.json` + `ru.json` (паритет 98 ключей, ru без заглушек)
+- [x] Все settings schema + label_key (чистка: лишних настроек нет)
+- [x] Error UX (daemon, not installed, unregistered) — текст + рекомендация на en/ru
+- [x] Auto-trace + interval (уже в core; поведением подтверждён)
+- [x] Thumbnail / preview (`thumbnail.webp` 1280×720, 64 KB)
+- [x] README (install, IPC examples, known limits) — переписан по коду
+- [x] `luau-analyze` clean — N/A: тулчейн локально не установлен (K-04), гейт = lint 0/0
 
 **DoD:** нет hardcoded строк UI; ошибки понятны; docs полные.
 

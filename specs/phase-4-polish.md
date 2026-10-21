@@ -48,16 +48,16 @@ orchestrator, а не добавлять «по ходу».
 
 ### A. Линт и манифест
 
-- [ ] `noctalia plugins lint cloudflare-warp` → exit 0,
+- [x] `noctalia plugins lint cloudflare-warp` → exit 0,
       `0 errors, 0 warnings`.
       (Команды `noctalia validate-plugin` не существует — не использовать.)
-- [ ] `python3 -c "import tomllib;d=tomllib.load(open('cloudflare-warp/plugin.toml','rb'));print(d['version'],d['plugin_api'])"`
+- [x] `python3 -c "import tomllib;d=tomllib.load(open('cloudflare-warp/plugin.toml','rb'));print(d['version'],d['plugin_api'])"`
       → `0.5.0 24`.
-- [ ] В манифесте нет неиспользуемых настроек и нет настроек без `label_key`.
+- [x] В манифесте нет неиспользуемых настроек и нет настроек без `label_key`.
 
 ### B. Паритет переводов
 
-- [ ] Одинаковый набор путей ключей в en и ru (вложенный JSON, сравнение рекурсивное):
+- [x] Одинаковый набор путей ключей в en и ru (вложенный JSON, сравнение рекурсивное):
 
 ```bash
 cd /home/code_warlord/DEV/cloudflare-warp-plugin
@@ -79,41 +79,41 @@ sys.exit(0 if en == ru else 1)
 PY
 ```
 
-- [ ] Все `label_key`/`description_key` из `plugin.toml` присутствуют в обоих файлах.
-- [ ] В `ru.json` нет английских строк-заглушек (глазами, выборочно 10 ключей).
+- [x] Все `label_key`/`description_key` из `plugin.toml` присутствуют в обоих файлах.
+- [x] В `ru.json` нет английских строк-заглушек (глазами, выборочно 10 ключей).
 
 ### C. Чистая загрузка
 
 Команды выполняются на живом shell, лог — `~/.cache/noctalia/noctalia.log`.
 
-- [ ] `noctalia msg plugins enable code-warlord/cloudflare-warp` → `ok …`.
-- [ ] В логе есть `loaded plugin 'code-warlord/cloudflare-warp' (4 entries)` и
+- [x] `noctalia msg plugins enable code-warlord/cloudflare-warp` → `ok …`.
+- [x] В логе есть `loaded plugin 'code-warlord/cloudflare-warp' (4 entries)` и
       `started service 'code-warlord/cloudflare-warp:service'`.
-- [ ] Нет ни одной строки `[plugin-i18n] plugin translation key … not found`,
+- [x] Нет ни одной строки `[plugin-i18n] plugin translation key … not found`,
       относящейся к нашим ключам:
       `grep -n "plugin translation key" ~/.cache/noctalia/noctalia.log | tail -5` → наших ключей нет.
-- [ ] Нет `disabled after repeated timeouts` для нашего плагина.
-- [ ] Нет `[ERR]`-строк, содержащих `cloudflare-warp`.
-- [ ] Переключение языка Noctalia на ru → подписи настроек и панели на русском
+- [x] Нет `disabled after repeated timeouts` для нашего плагина.
+- [x] Нет `[ERR]`-строк, содержащих `cloudflare-warp`.
+- [ ] Переключение языка Noctalia на ru (MANUAL, owner) → подписи настроек и панели на русском
       (Settings → Plugins → Cloudflare WARP).
-- [ ] Переключение обратно на en → английские.
+- [ ] Переключение обратно на en (MANUAL, owner) → английские.
 
 ### D. Ошибки и UX
 
-- [ ] Каждый `errorCode` имеет текст в en и ru; ни один не показывает сырой ключ
+- [x] Каждый `errorCode` имеет текст в en и ru; ни один не показывает сырой ключ
       (`error.foo` в UI = FAIL).
-- [ ] При `unregistered` панель предлагает Register, а не «ошибку».
-- [ ] При `switch_locked` mode-селектор disabled и есть объяснение.
-- [ ] При недоступном CLI (`available = false`) панель не пустая и не врёт про WARP.
-- [ ] Tooltip бара не содержит пустых строк/`nil`.
+- [x] При `unregistered` панель предлагает Register, а не «ошибку».
+- [x] При `switch_locked` mode-селектор disabled и есть объяснение.
+- [x] При недоступном CLI (`available = false`) панель не пустая и не врёт про WARP.
+- [x] Tooltip бара не содержит пустых строк/`nil`.
 
 ### E. Trust surface
 
-- [ ] `grep -Rn "sudo\|pkexec\|systemctl" cloudflare-warp --include=*.luau` → пусто.
-- [ ] `grep -Rn "runAsync(\"" cloudflare-warp --include=*.luau` → пусто (только argv).
-- [ ] `grep -RniE "license|public_key|device_id" cloudflare-warp --include=*.luau`
+- [x] `grep -Rn "sudo\|pkexec\|systemctl" cloudflare-warp --include=*.luau` → пусто.
+- [x] `grep -Rn "runAsync(\"" cloudflare-warp --include=*.luau` → пусто (только argv).
+- [x] `grep -RniE "license|public_key|device_id" cloudflare-warp --include=*.luau`
       → только комментарии/README, ни одного чтения в state/лог.
-- [ ] Список процессов и сети в README совпадает с кодом:
+- [x] Список процессов и сети в README совпадает с кодом:
 
 | Вызов | Когда | Данные |
 |-------|-------|--------|
@@ -126,13 +126,13 @@ PY
 
 ### F. Репозиторий
 
-- [ ] `thumbnail.webp` существует, открывается, вес ≤ 1 МБ:
+- [x] `thumbnail.webp` существует, открывается, вес ≤ 1 МБ:
       `file cloudflare-warp/thumbnail.webp && du -h cloudflare-warp/thumbnail.webp`.
-- [ ] README содержит все 5 обязательных разделов docs-i18n
+- [x] README содержит все 5 обязательных разделов docs-i18n
       (зависимость, установка, IPC, ограничения, лицензия).
-- [ ] `CHANGELOG.md` содержит `0.5.0`.
-- [ ] QA-матрица (`.agents/skills/qa/SKILL.md`) — PASS.
-- [ ] Reviewer — APPROVE.
+- [x] `CHANGELOG.md` содержит `0.5.0`.
+- [x] QA-матрица (`.agents/skills/qa/SKILL.md`) — PASS.
+- [x] Reviewer — APPROVE.
 
 ## Risks
 
