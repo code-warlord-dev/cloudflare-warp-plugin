@@ -49,7 +49,7 @@ local path source:
 ```bash
 noctalia msg plugins source add warpdev path /path/to/cloudflare-warp-plugin
 noctalia msg plugins list | grep cloudflare-warp
-noctalia msg plugins enable code-warlord/cloudflare-warp
+noctalia msg plugins enable ModernByte/cloudflare-warp
 ```
 
 The repository root is the plugin source; the plugin itself lives in the
@@ -57,7 +57,7 @@ The repository root is the plugin source; the plugin itself lives in the
 source later:
 
 ```bash
-noctalia msg plugins disable code-warlord/cloudflare-warp
+noctalia msg plugins disable ModernByte/cloudflare-warp
 noctalia msg plugins source remove warpdev
 ```
 
@@ -76,7 +76,7 @@ noctalia msg plugins source remove warpdev
 ## Panel
 
 The panel opens with a left click on the bar widget or via
-`noctalia msg panel-toggle code-warlord/cloudflare-warp:panel`. Layout, top to
+`noctalia msg panel-toggle ModernByte/cloudflare-warp:panel`. Layout, top to
 bottom: animated full-bleed banner (plays a colour ramp forward when the tunnel is
 up and in reverse on disconnect, and sits on a desaturated first frame while WARP is
 off, so the banner always matches the phase), header with refresh and close, hero
@@ -128,14 +128,14 @@ rejected value is logged as a warning and skipped — no CLI call, no state chan
 | `set-protocol` | `wireguard` or `masque`, any case | `warp-cli tunnel protocol set <P>`. |
 
 ```bash
-noctalia msg plugin code-warlord/cloudflare-warp:service all refresh
-noctalia msg plugin code-warlord/cloudflare-warp:service all toggle
-noctalia msg plugin code-warlord/cloudflare-warp:service all connect
-noctalia msg plugin code-warlord/cloudflare-warp:service all disconnect
-noctalia msg plugin code-warlord/cloudflare-warp:service all register
-noctalia msg plugin code-warlord/cloudflare-warp:service all set-mode warp+doh
-noctalia msg plugin code-warlord/cloudflare-warp:service all set-families malware
-noctalia msg plugin code-warlord/cloudflare-warp:service all set-protocol MASQUE
+noctalia msg plugin ModernByte/cloudflare-warp:service all refresh
+noctalia msg plugin ModernByte/cloudflare-warp:service all toggle
+noctalia msg plugin ModernByte/cloudflare-warp:service all connect
+noctalia msg plugin ModernByte/cloudflare-warp:service all disconnect
+noctalia msg plugin ModernByte/cloudflare-warp:service all register
+noctalia msg plugin ModernByte/cloudflare-warp:service all set-mode warp+doh
+noctalia msg plugin ModernByte/cloudflare-warp:service all set-families malware
+noctalia msg plugin ModernByte/cloudflare-warp:service all set-protocol MASQUE
 ```
 
 UI entries do not call IPC from scripts; they write a table (`seq`, `action`,

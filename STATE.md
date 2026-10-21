@@ -10,13 +10,13 @@
 
 | Поле | Значение |
 |------|----------|
-| **Plugin version** | `0.5.0` — **released**, tag `v0.5.0` |
-| **Roadmap phase** | Phase 4 — Polish & i18n **done**; далее Phase 5 — Public 1.0.0 |
-| **Branch** | `main` |
+| **Plugin version** | `1.0.0` (release via PR #9; публичный репо ModernByte — в работе) |
+| **Roadmap phase** | Phase 5 — Public: id-ребренд готов, публикация в ModernByte/cloudflare-warp + вики |
+| **Branch** | `feat/phase-5-public` |
 | **Remote** | https://github.com/code-warlord-dev/cloudflare-warp-plugin |
 | **Last merge** | `9f27d96` Merge PR #8 — polish & i18n v0.5.0 (tag `v0.5.0` pushed) |
 | **Blockers** | none |
-| **Next action** | Phase 5 — Public 1.0.0 (catalog entry, upstream PR в community-plugins, полная валидация); владельца: ru/en toggle (MANUAL), K-17 досъёмка скриншотов, K-18 live-toggle, K-19 `plugins source remove warpqa` |
+| **Next action** | Merge PR #9 → tag `v1.0.0`; затем сборка публичного репо ModernByte/cloudflare-warp (staging → публикация → вики EN/RU); upstream PR в community-plugins — только по отдельному решению владельца |
 
 ---
 
@@ -79,6 +79,9 @@
 | reviewer | Фаза 4: APPROVE (3 minor: README-подпись исправлена, CHANGELOG/версия — релиз-преп, nit про message) | done | working tree |
 | qa | QA-матрица A–F: PASS (fixture daemon-down проверен и восстановлен byte-exact; MANUAL: переключение языка ru/en) | done | live |
 | orchestrator | Release 0.5.0: PR #8 merged `9f27d96`, tag `v0.5.0` pushed | done | `main` |
+| implementer | P5-T1 ребренд id: `ModernByte/cloudflare-warp`, author `Modern Byte`, адрес `:panel` в widget, README/SPEC/skills/Quick commands; dependencies (пакет) не тронут | done | `feat/phase-5-public` |
+| reviewer | P5: APPROVE — dependencies целы, old id в cloudflare-warp/ пуст, поведение не изменено, lint под новым id 0/0 | done | — |
+| qa | P5 live swap: disable старый id → enable `ModernByte/cloudflare-warp 0.5.0` (4 entries, service с DEV-пути), refresh/panel чисты, ERR нет; старый_instances выключен, двойного поллинга нет | done | PASS; хост оставлен на новом id |
 
 ---
 
@@ -150,7 +153,7 @@
 
 | ID | Description | Severity | Owner |
 |----|-------------|----------|-------|
-| K-01 | Author handle: локально есть плагины `code_warlord/*`, выбран `code-warlord`; сверить до Phase 5 | minor | orchestrator |
+| K-01 | ~~Author handle reconciliation~~ — resolved: id `ModernByte/cloudflare-warp`, author `Modern Byte`, публичный репо от организации ModernByte | resolved | — |
 | K-02 | `setImage` со SVG: fallback + одна WRN проверены live (PR #3); **ручной** visual sign-off «SVG виден на баре глазами» за владельцем | minor | owner |
 | K-03 | `warp-cli dns families` write-only, геттера нет → панель показывает дефолт `malware` до установки значения в сессии; реальное не-дефолтное значение после рестарта не определяется | known limit | implementer |
 | K-04 | Нет локального Luau-тулчейна (`luau`, `luau-analyze`, `selene`) — гейт только lint + runtime-лог | minor | Phase 4 |
@@ -221,6 +224,7 @@
 | 2026-10-21 | `connecting`/`disconnecting` удерживаются до наблюдения целевой фазы поллингом; safety timeout 30 с; `busy` держится вместе с фазой | owner: «Подключение…» показывался на мгновение и схлопывался в «Отключено»; CLI возвращается раньше, чем туннель поднялся |
 | 2026-10-21 | Trace: argv-only `curl` первым, `noctalia.http` — fallback | K-08: http стабильно таймаутит на dev-хосте, системный curl работает; фиксированный argv без payload и shell-слоя, сетевой запрос один |
 | 2026-10-21 | Identity refresh также после set-mode/set-protocol (сразу + ~5 с) | owner: при смене режимов «ничего не меняется» — маршрут/выход могут смениться без reconnect |
+| 2026-10-21 | id → `ModernByte/cloudflare-warp`, author `Modern Byte`; публичный релиз от организации Modern Byte, репо `cloudflare-warp` | owner-решение: личный репо — черновик; формат id Noctalia = GitHub-логин/имя-репо, поэтому `modern-byte.cloudflare-warp` невозможен; при переименовании старый id выключать до включения нового (глобальные каналы warp.*) |
 
 ---
 
@@ -238,15 +242,15 @@ noctalia msg plugins list | grep cloudflare-warp
 noctalia msg plugins source add warpdev path /home/code_warlord/DEV/cloudflare-warp-plugin
 
 # enable / disable
-noctalia msg plugins enable code-warlord/cloudflare-warp
-noctalia msg plugins disable code-warlord/cloudflare-warp
+noctalia msg plugins enable ModernByte/cloudflare-warp
+noctalia msg plugins disable ModernByte/cloudflare-warp
 
 # service IPC (after Phase 1)
-noctalia msg plugin code-warlord/cloudflare-warp:service all refresh
-noctalia msg plugin code-warlord/cloudflare-warp:service all toggle
+noctalia msg plugin ModernByte/cloudflare-warp:service all refresh
+noctalia msg plugin ModernByte/cloudflare-warp:service all toggle
 
 # panel
-noctalia msg panel-toggle code-warlord/cloudflare-warp:panel
+noctalia msg panel-toggle ModernByte/cloudflare-warp:panel
 
 # logs
 tail -f ~/.cache/noctalia/noctalia.log

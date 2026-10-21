@@ -22,7 +22,7 @@ description: Write Luau entry scripts, lib modules, and plugin.toml for the Clou
 ### Manifest
 
 ```toml
-id         = "code-warlord/cloudflare-warp"
+id         = "ModernByte/cloudflare-warp"
 plugin_api = 24
 ```
 

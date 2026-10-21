@@ -54,6 +54,7 @@ Pre-1.0 (`0.x.y`):
 | 0.4.2 | Phase 3 | Panel side gutters 30 → 16 px, no state/IPC change | released |
 | 0.4.3 | Phase 3 | Animated 27-frame panel banner (20–100 % saturation, bottom fade), 400×734 panel, wave transition, LMB panel / RMB toggle, trace refresh on connect, phase hold, argv-curl trace | released |
 | 0.5.0 | Phase 4 | Polish & i18n: full en/ru error texts with actions, translated widget tooltips, unknown-phase error surfacing, store-ready README, thumbnail.webp | released |
+| 1.0.0 | Phase 5 | First stable public release under Modern Byte; breaking identity rename id → `ModernByte/cloudflare-warp` (author `Modern Byte`), no state/IPC/settings/plugin_api change | prepared |
 | 0.5.0 | Phase 4 | Polish, full i18n, error UX, README | planned |
 | 1.0.0 | Phase 5 | Public release / community-plugins | planned |
 | 1.x.y | Post-1.0 | Backlog features | backlog |

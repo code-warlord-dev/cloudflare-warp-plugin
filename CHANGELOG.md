@@ -7,6 +7,23 @@ Versioning follows [SemVer](https://semver.org/) — see [VERSIONING.md](./VERSI
 
 ---
 
+## [1.0.0] - 2026-10-21
+
+First stable public release, published under the **Modern Byte** organization.
+
+### Changed
+- **Breaking (identity):** plugin id renamed `code-warlord/cloudflare-warp` →
+  `ModernByte/cloudflare-warp`; manifest `author` is now `Modern Byte`. The id is the
+  public address used by enable/disable, IPC targets and the widget's panel toggle
+  (`widget.luau`); the old id must be disabled before the new one is enabled because
+  the `warp.status` / `warp.command` state channels are global. No functional change:
+  the state schema, IPC events, settings and `plugin_api = 24` are untouched.
+- Documentation and specs updated to the new id and entry addresses.
+
+### Fixed
+- K-01 (author-handle reconciliation) closed: shipping author is the GitHub
+  organization login `ModernByte`, matching the public repository path.
+
 ## [0.5.0] - 2026-10-21
 
 Phase 4 — Polish & i18n: the plugin is ready for community-plugins.

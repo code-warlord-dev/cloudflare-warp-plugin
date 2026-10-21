@@ -29,7 +29,7 @@ warp-cli --accept-tos --json --no-paginate --no-ansi settings list \
 # 3. path-source на корень репозитория
 noctalia msg plugins source add warpdev path /home/code_warlord/DEV/cloudflare-warp-plugin
 noctalia msg plugins list | grep cloudflare-warp
-noctalia msg plugins enable code-warlord/cloudflare-warp
+noctalia msg plugins enable ModernByte/cloudflare-warp
 sleep 2
 ```
 
@@ -40,23 +40,23 @@ sleep 2
 noctalia plugins lint cloudflare-warp
 
 # IPC сервиса
-noctalia msg plugin code-warlord/cloudflare-warp:service all refresh
-noctalia msg plugin code-warlord/cloudflare-warp:service all toggle
-noctalia msg plugin code-warlord/cloudflare-warp:service all connect
-noctalia msg plugin code-warlord/cloudflare-warp:service all disconnect
-noctalia msg plugin code-warlord/cloudflare-warp:service all set-mode "doh"
-noctalia msg plugin code-warlord/cloudflare-warp:service all set-protocol "wireguard"
-noctalia msg plugin code-warlord/cloudflare-warp:service all set-families "off"
+noctalia msg plugin ModernByte/cloudflare-warp:service all refresh
+noctalia msg plugin ModernByte/cloudflare-warp:service all toggle
+noctalia msg plugin ModernByte/cloudflare-warp:service all connect
+noctalia msg plugin ModernByte/cloudflare-warp:service all disconnect
+noctalia msg plugin ModernByte/cloudflare-warp:service all set-mode "doh"
+noctalia msg plugin ModernByte/cloudflare-warp:service all set-protocol "wireguard"
+noctalia msg plugin ModernByte/cloudflare-warp:service all set-families "off"
 
 # панель
-noctalia msg panel-toggle code-warlord/cloudflare-warp:panel
+noctalia msg panel-toggle ModernByte/cloudflare-warp:panel
 
 # наблюдение
 tail -f ~/.cache/noctalia/noctalia.log
 grep -n "cloudflare-warp" ~/.cache/noctalia/noctalia.log | tail -20
 ```
 
-Ожидаемые строки лога: `loaded plugin 'code-warlord/cloudflare-warp' (4 entries)`,
+Ожидаемые строки лога: `loaded plugin 'ModernByte/cloudflare-warp' (4 entries)`,
 `cloudflare-warp: status phase=…`, `cloudflare-warp: heartbeat … at=…`,
 `cloudflare-warp: ipc <event> payload=…`, `cloudflare-warp: exit reason=…`.
 
