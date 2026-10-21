@@ -50,7 +50,7 @@ noctalia msg plugins source remove warpdev
 | `service` | service | Headless owner of WARP state: polls `warp-cli`, publishes `warp.status`, consumes `warp.command` and IPC. |
 | `widget` | bar widget | Phase status SVG icon, short status text and tooltip; opens the panel on left click, toggles WARP on right click. |
 | `shortcut` | Control Center | Live tile synced to `warp.status`; toggles WARP on click, refreshes on right click. |
-| `panel` | floating panel | Full control surface: status card, mode, families, protocol, identity, registration actions. |
+| `panel` | floating panel | Full control surface: hero card, mode, families, protocol, identity, registration actions. |
 
 ## Interactions
 

@@ -76,6 +76,23 @@ Versioning follows [SemVer](https://semver.org/) — see [VERSIONING.md](./VERSI
   `cdn-cgi/trace` consistently timed out (curl=28, empty body, no timeout option), so
   the service switched to the argv-only `curl` probe above. Trace failures now log the
   exit code and stderr once and every fifth retry instead of only a generic status.
+- Copy IP no longer reports a failure for a non-boolean host result: anything other than
+  `false` from `copyToClipboard` counts as success, so a nil return no longer suppresses
+  the copied feedback.
+- The held `connecting`/`disconnecting` poll now clears `errorCode` and `message`, so a
+  stale error string can no longer stay visible under «Подключение…».
+- The delayed identity probe (after connect/disconnect and mode/protocol changes) re-arms
+  itself 5 s later when a trace is already in flight instead of being dropped by the
+  in-flight guard, so the post-change identity refresh is no longer lost.
+- The power button stays enabled during a held `connecting`/`disconnecting` so the user can
+  cancel or retry (it maps to `disconnect`), while the other mutating controls remain
+  dimmed.
+- The service no longer resets `families` to `malware` on reload: it keeps the value already
+  published on the state channel, so the user's last choice survives a service hot reload
+  even though the CLI value itself is write-only.
+- Documentation corrections: SPEC §2/§10 now state the shipped click binding (LMB opens the
+  panel, RMB toggles WARP) without the «инверсия» claim, and `templates/PR.md` carries the
+  canonical, complete subprocess and network table.
 
 ---
 

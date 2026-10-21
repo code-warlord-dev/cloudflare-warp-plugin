@@ -39,7 +39,7 @@ argv-форма `runAsync` (без shell). Телеметрия туннеля (
 | Entry ID | Тип | Файл | Назначение |
 |----------|-----|------|------------|
 | `service` | `[[service]]` | `service.luau` | Единственный источник правды: поллит `warp-cli`, публикует `warp.status`, потребляет `warp.command`. |
-| `widget` | `[[widget]]` | `widget.luau` | Bar-виджет: SVG + текст + tooltip, ЛК toggle, ПК панель. |
+| `widget` | `[[widget]]` | `widget.luau` | Bar-виджет: SVG + текст + tooltip, ЛК панель, ПК toggle. |
 | `shortcut` | `[[shortcut]]` | `shortcut.luau` | Плитка Control Center: glyph-пара, checked = connected. |
 | `panel` | `[[panel]]` | `panel.luau` | Детальная панель управления. |
 
@@ -581,8 +581,8 @@ cloudflare-warp/
    `currentColor`/один `fill`. Официальный логотип Cloudflare не копировать 1:1;
    в README — note про trademark.
 3. Цвета текста — роли палитры (`primary`, `on_surface_variant`, `error`, `success`).
-4. Клики: ЛК toggle, ПК панель. Это **инверсия** относительно `levi/warp`
-   (там ЛК — панель) — зафиксировать в README, чтобы не выглядело багом.
+4. Клики: ЛК — панель, ПК — toggle WARP (`warp.command`, action `toggle`); у `levi/warp`
+   ЛК тоже панель, поэтому инверсии относительно него нет.
 5. Панель — floating, `position = "auto"`, `open_near_click = true`, 400×734, без scroll.
 6. Tooltip всегда информативен и локализован.
 7. Тексты статуса: `connected`, `disconnected`, `connecting`, `disconnecting`,
